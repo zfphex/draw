@@ -1,232 +1,125 @@
-use winit::{
-    event::*,
-    event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
-};
+use glow::*;
+use glutin::event::{Event, WindowEvent};
+use glutin::event_loop::ControlFlow;
 
-struct State {
-    surface: wgpu::Surface,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
-    render_pipeline: wgpu::RenderPipeline,
+enum Shader {
+    Vertex,
+    Fragment,
 }
-
-impl State {
-    // Creating some of the wgpu types requires async code
-    async fn new(window: &Window) -> Self {
-        let size = window.inner_size();
-
-        // The instance is a handle to our GPU
-        // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
-        let surface = unsafe { instance.create_surface(window) };
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .unwrap();
-
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::default(),
-                    label: None,
-                },
-                None, // Trace path
-            )
-            .await
-            .unwrap();
-
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_preferred_format(&adapter).unwrap(),
-            width: size.width,
-            height: size.height,
-            present_mode: wgpu::PresentMode::Fifo,
-        };
-        surface.configure(&device, &config);
-
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("shader.wgsl"));
-
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main", // 1.
-                buffers: &[],           // 2.
-            },
-            fragment: Some(wgpu::FragmentState {
-                // 3.
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[wgpu::ColorTargetState {
-                    // 4.
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                }],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList, // 1.
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw, // 2.
-                cull_mode: Some(wgpu::Face::Back),
-                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
-                polygon_mode: wgpu::PolygonMode::Fill,
-                // Requires Features::DEPTH_CLIP_CONTROL
-                unclipped_depth: false,
-                // Requires Features::CONSERVATIVE_RASTERIZATION
-                conservative: false,
-            },
-            depth_stencil: None, // 1.
-            multisample: wgpu::MultisampleState {
-                count: 1,                         // 2.
-                mask: !0,                         // 3.
-                alpha_to_coverage_enabled: false, // 4.
-            },
-            multiview: None, // 5.
-        });
-
-        Self {
-            surface,
-            device,
-            queue,
-            config,
-            size,
-            render_pipeline,
-        }
-    }
-
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
-            self.surface.configure(&self.device, &self.config);
-        }
-    }
-
-    fn input(&mut self, _event: &WindowEvent) -> bool {
-        false
-    }
-
-    fn update(&mut self) {}
-
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let output = self.surface.get_current_texture()?;
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[
-                    // This is what [[location(0)]] in the fragment shader targets
-                    wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color {
-                                r: 0.1,
-                                g: 0.2,
-                                b: 0.3,
-                                a: 1.0,
-                            }),
-                            store: true,
-                        },
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
-
-            render_pass.set_pipeline(&self.render_pipeline); // 2.
-            render_pass.draw(0..3, 0..1); // 3.
-        }
-
-        // submit will accept anything that implements IntoIter
-        self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-
-        Ok(())
-    }
-}
-
-//Instance is the entry point for all wgpu objects
-//Adapter is a handle to the graphics card. You can get name / type of device.
-
-//Device
-//Queue
 
 fn main() {
-    env_logger::init();
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
-    let mut state = pollster::block_on(State::new(&window));
+    unsafe {
+        let event_loop = glutin::event_loop::EventLoop::new();
 
-    event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == window.id() => {
-            if !state.input(event) {
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size);
-                    }
+        let window_builder = glutin::window::WindowBuilder::new()
+            .with_title("Hello triangle!")
+            .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
 
-                    _ => {}
+        let window = glutin::ContextBuilder::new()
+            .with_vsync(true)
+            .build_windowed(window_builder, &event_loop)
+            .unwrap()
+            .make_current()
+            .unwrap();
+
+        let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
+
+        let program = gl.create_program().expect("Cannot create program");
+        let create_shader = |source, s_type| -> NativeShader {
+            let shader = match s_type {
+                Shader::Vertex => gl.create_shader(glow::VERTEX_SHADER),
+                Shader::Fragment => gl.create_shader(glow::FRAGMENT_SHADER),
+            }
+            .unwrap();
+            let error = gl.get_shader_info_log(shader);
+            if !error.is_empty() {
+                panic!("{}", error);
+            }
+            gl.shader_source(shader, source);
+            gl.compile_shader(shader);
+            gl.attach_shader(program, shader);
+            shader
+        };
+
+        let source = r#"
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+
+            void main()
+            {
+            gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+            }"#;
+
+        let v = create_shader(source, Shader::Vertex);
+
+        let source = r#"
+        #version 330 core
+        out vec4 FragColor;
+
+        void main() {
+            FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+        }"#;
+
+        let f = create_shader(source, Shader::Fragment);
+
+        gl.link_program(program);
+        if !gl.get_program_link_status(program) {
+            panic!("{}", gl.get_program_info_log(program));
+        }
+
+        gl.use_program(Some(program));
+
+        gl.delete_shader(v);
+        gl.delete_shader(f);
+
+        let vertices = [
+            -0.5f32, -0.5f32, 0.0f32, 0.5f32, -0.5f32, 0.0f32, 0.0f32, 0.5f32, 0.0f32,
+        ];
+
+        let triangle_vertices_u8: &[u8] = core::slice::from_raw_parts(
+            vertices.as_ptr() as *const u8,
+            vertices.len() * core::mem::size_of::<f32>(),
+        );
+
+        //TODO: After I draw my triangle I want to draw just the outline
+        let vbo = gl.create_buffer().unwrap();
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, triangle_vertices_u8, glow::STATIC_DRAW);
+
+        let vao = gl.create_vertex_array().unwrap();
+        gl.bind_vertex_array(Some(vao));
+        gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 0, 0);
+        gl.enable_vertex_attrib_array(0);
+
+        gl.clear_color(0.1, 0.2, 0.3, 1.0);
+
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Poll;
+            match event {
+                Event::LoopDestroyed => {
+                    return;
                 }
+                Event::MainEventsCleared => {
+                    window.window().request_redraw();
+                }
+                Event::RedrawRequested(_) => {
+                    gl.clear(glow::COLOR_BUFFER_BIT);
+                    gl.draw_arrays(glow::TRIANGLES, 0, 3);
+                    window.swap_buffers().unwrap();
+                }
+                Event::WindowEvent { ref event, .. } => match event {
+                    WindowEvent::Resized(physical_size) => {
+                        window.resize(*physical_size);
+                    }
+                    WindowEvent::CloseRequested => {
+                        gl.delete_program(program);
+                        // gl.delete_vertex_array(vertex_array);
+                        *control_flow = ControlFlow::Exit
+                    }
+                    _ => (),
+                },
+                _ => (),
             }
-        }
-        Event::RedrawRequested(window_id) if window_id == window.id() => {
-            state.update();
-            match state.render() {
-                Ok(_) => {}
-                // Reconfigure the surface if lost
-                Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                // The system is out of memory, we should probably quit
-                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                // All other errors (Outdated, Timeout) should be resolved by the next frame
-                Err(e) => eprintln!("{:?}", e),
-            }
-        }
-        Event::MainEventsCleared => {
-            // RedrawRequested will only trigger once, unless we manually
-            // request it.
-            window.request_redraw();
-        }
-        _ => {}
-    });
+        });
+    }
 }
