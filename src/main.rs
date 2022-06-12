@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::Read;
+use std::time::Instant;
+
 use glow::*;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;
@@ -5,6 +9,14 @@ use glutin::event_loop::ControlFlow;
 enum Shader {
     Vertex,
     Fragment,
+}
+impl Shader {
+    pub fn new(path: &str) -> String {
+        let mut file = File::open(path).unwrap();
+        let mut buf = String::new();
+        file.read_to_string(&mut buf).unwrap();
+        buf
+    }
 }
 
 fn buffer<T>(vertices: &[T]) -> &[u8] {
@@ -21,7 +33,7 @@ fn main() {
         let event_loop = glutin::event_loop::EventLoop::new();
 
         let window_builder = glutin::window::WindowBuilder::new()
-            .with_title("Hello triangle!")
+            .with_title("OpenGL Window")
             .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
 
         let window = glutin::ContextBuilder::new()
@@ -50,26 +62,11 @@ fn main() {
             shader
         };
 
-        let source = r#"
-            #version 330 core
-            layout (location = 0) in vec3 aPos;
+        let source = Shader::new("src/vertex.glsl");
+        let v = create_shader(&source, Shader::Vertex);
 
-            void main()
-            {
-            gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-            }"#;
-
-        let v = create_shader(source, Shader::Vertex);
-
-        let source = r#"
-        #version 330 core
-        out vec4 FragColor;
-
-        void main() {
-            FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-        }"#;
-
-        let f = create_shader(source, Shader::Fragment);
+        let source = Shader::new("src/fragment.glsl");
+        let f = create_shader(&source, Shader::Fragment);
 
         gl.link_program(program);
         if !gl.get_program_link_status(program) {
@@ -130,6 +127,7 @@ fn main() {
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
         // gl.polygon_mode(glow::FRONT_AND_BACK, glow::LINE);
 
+        let time = Instant::now();
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             match event {
@@ -140,6 +138,10 @@ fn main() {
                     window.window().request_redraw();
                 }
                 Event::RedrawRequested(_) => {
+                    let green = time.elapsed().as_secs_f32().sin() / 2.0 + 0.5;
+                    let location = gl.get_uniform_location(program, "our_color");
+                    gl.uniform_4_f32(location.as_ref(), 0.0, green, 0.0, 1.0);
+
                     gl.clear(glow::COLOR_BUFFER_BIT);
                     gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
                     window.swap_buffers().unwrap();
