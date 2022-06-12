@@ -7,6 +7,15 @@ enum Shader {
     Fragment,
 }
 
+fn buffer<T>(vertices: &[T]) -> &[u8] {
+    unsafe {
+        core::slice::from_raw_parts(
+            vertices.as_ptr() as *const u8,
+            vertices.len() * core::mem::size_of::<T>(),
+        )
+    }
+}
+
 fn main() {
     unsafe {
         let event_loop = glutin::event_loop::EventLoop::new();
@@ -72,26 +81,54 @@ fn main() {
         gl.delete_shader(v);
         gl.delete_shader(f);
 
-        let vertices = [
+        let triangle = buffer(&[
             -0.5f32, -0.5f32, 0.0f32, 0.5f32, -0.5f32, 0.0f32, 0.0f32, 0.5f32, 0.0f32,
-        ];
-
-        let triangle_vertices_u8: &[u8] = core::slice::from_raw_parts(
-            vertices.as_ptr() as *const u8,
-            vertices.len() * core::mem::size_of::<f32>(),
-        );
+        ]);
 
         //TODO: After I draw my triangle I want to draw just the outline
         let vbo = gl.create_buffer().unwrap();
         gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, triangle_vertices_u8, glow::STATIC_DRAW);
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, triangle, glow::STATIC_DRAW);
 
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(vao));
         gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 0, 0);
         gl.enable_vertex_attrib_array(0);
 
+        //Draw square
+        {
+            let square = buffer(&[
+                -0.5f32, 0.5f32, 0.0f32, //top left
+                0.5f32, 0.5f32, 0.0f32, //top right
+                0.5f32, -0.5f32, 0.0f32, //bottom right
+                -0.5f32, -0.5f32, 0.0f32, // bottom left
+            ]);
+
+            //top left, top right, bottom right
+            //top left, bottom left, top right
+            let indices = [
+                0, 1, 2, //first triangle
+                0, 3, 2, //second triangle
+            ];
+
+            let vao = gl.create_vertex_array().unwrap();
+            gl.bind_vertex_array(Some(vao));
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&square), glow::STATIC_DRAW);
+
+            let ebo = gl.create_buffer().unwrap();
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+            gl.buffer_data_u8_slice(
+                glow::ELEMENT_ARRAY_BUFFER,
+                buffer(&indices),
+                glow::STATIC_DRAW,
+            );
+            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 0, 0);
+            gl.enable_vertex_attrib_array(0);
+            // gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+        }
+
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
+        // gl.polygon_mode(glow::FRONT_AND_BACK, glow::LINE);
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
@@ -104,7 +141,7 @@ fn main() {
                 }
                 Event::RedrawRequested(_) => {
                     gl.clear(glow::COLOR_BUFFER_BIT);
-                    gl.draw_arrays(glow::TRIANGLES, 0, 3);
+                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
                     window.swap_buffers().unwrap();
                 }
                 Event::WindowEvent { ref event, .. } => match event {
