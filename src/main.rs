@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::Read;
-use std::time::Instant;
 
 use glow::*;
 use glutin::event::{Event, WindowEvent};
@@ -78,56 +77,33 @@ fn main() {
         gl.delete_shader(v);
         gl.delete_shader(f);
 
-        let triangle = buffer(&[
-            -0.5f32, -0.5f32, 0.0f32, 0.5f32, -0.5f32, 0.0f32, 0.0f32, 0.5f32, 0.0f32,
-        ]);
-
-        //TODO: After I draw my triangle I want to draw just the outline
-        let vbo = gl.create_buffer().unwrap();
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, triangle, glow::STATIC_DRAW);
-
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(vao));
-        gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 0, 0);
-        gl.enable_vertex_attrib_array(0);
-
-        //Draw square
         {
-            let square = buffer(&[
-                -0.5f32, 0.5f32, 0.0f32, //top left
-                0.5f32, 0.5f32, 0.0f32, //top right
-                0.5f32, -0.5f32, 0.0f32, //bottom right
-                -0.5f32, -0.5f32, 0.0f32, // bottom left
-            ]);
-
-            //top left, top right, bottom right
-            //top left, bottom left, top right
-            let indices = [
-                0, 1, 2, //first triangle
-                0, 3, 2, //second triangle
+            let vertices: &[f32] = &[
+                0.5, -0.5, 0.0, //Position
+                1.0, 0.0, 0.0, //Color
+                -0.5, -0.5, 0.0, //Position
+                0.0, 1.0, 0.0, //Color
+                0.0, 0.5, 0.0, //Position
+                0.0, 0.0, 1.0, //Color
             ];
 
             let vao = gl.create_vertex_array().unwrap();
-            gl.bind_vertex_array(Some(vao));
-            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&square), glow::STATIC_DRAW);
+            let vbo = gl.create_buffer().unwrap();
 
-            let ebo = gl.create_buffer().unwrap();
-            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
-            gl.buffer_data_u8_slice(
-                glow::ELEMENT_ARRAY_BUFFER,
-                buffer(&indices),
-                glow::STATIC_DRAW,
-            );
-            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 0, 0);
+            gl.bind_vertex_array(Some(vao));
+
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(vertices), glow::STATIC_DRAW);
+
+            //Position
+            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
             gl.enable_vertex_attrib_array(0);
-            // gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+
+            //Color
+            gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
+            gl.enable_vertex_attrib_array(1);
         }
 
-        gl.clear_color(0.1, 0.2, 0.3, 1.0);
-        // gl.polygon_mode(glow::FRONT_AND_BACK, glow::LINE);
-
-        let time = Instant::now();
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             match event {
@@ -138,12 +114,10 @@ fn main() {
                     window.window().request_redraw();
                 }
                 Event::RedrawRequested(_) => {
-                    let green = time.elapsed().as_secs_f32().sin() / 2.0 + 0.5;
-                    let location = gl.get_uniform_location(program, "our_color");
-                    gl.uniform_4_f32(location.as_ref(), 0.0, green, 0.0, 1.0);
-
+                    //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT);
-                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+                    gl.draw_arrays(glow::TRIANGLES, 0, 3);
+
                     window.swap_buffers().unwrap();
                 }
                 Event::WindowEvent { ref event, .. } => match event {
