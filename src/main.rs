@@ -96,11 +96,11 @@ fn main() {
 
         {
             let square: &[f32] = &[
-                0.5, -0.5, 0.0, //Position
+                -0.5, 0.5, 0.0, //Top Left
                 1.0, 0.0, 0.0, //Color
-                -0.5, -0.5, 0.0, //Position
+                0.5, 0.5, 0.0, //Top Right
                 0.0, 1.0, 0.0, //Color
-                0.0, 0.5, 0.0, //Position
+                0.0, -0.5, 0.0, //Position
                 0.0, 0.0, 1.0, //Color
             ];
 
