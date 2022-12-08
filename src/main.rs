@@ -123,6 +123,7 @@ fn main() {
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
+        //TODO: 6.8 Exercies 2
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             match event {
