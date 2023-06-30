@@ -6,64 +6,55 @@ use glow::*;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;
 
-struct Program {
-    native_program: NativeProgram,
+pub fn open(path: impl AsRef<Path>) -> String {
+    let mut file = File::open(path).unwrap();
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).unwrap();
+    buf
 }
 
-impl Program {
-    pub fn new(
-        gl: &Context,
-        vertex_path: impl AsRef<Path>,
-        fragment_path: impl AsRef<Path>,
-    ) -> Self {
-        unsafe {
-            let v_source = Self::open(vertex_path);
-            let f_source = Self::open(fragment_path);
-            let program = gl.create_program().unwrap();
+pub unsafe fn program(
+    gl: &Context,
+    vertex_path: impl AsRef<Path>,
+    fragment_path: impl AsRef<Path>,
+) -> NativeProgram {
+    let v_source = open(vertex_path);
+    let f_source = open(fragment_path);
+    let program = gl.create_program().unwrap();
 
-            //Vertex shader
-            let v = gl.create_shader(glow::VERTEX_SHADER).unwrap();
-            let error = gl.get_shader_info_log(v);
-            if !error.is_empty() {
-                panic!("{}", error);
-            }
-            gl.shader_source(v, &v_source);
-            gl.compile_shader(v);
-            gl.attach_shader(program, v);
-
-            //Fragment shader
-            let f = gl.create_shader(glow::FRAGMENT_SHADER).unwrap();
-            let error = gl.get_shader_info_log(f);
-            if !error.is_empty() {
-                panic!("{}", error);
-            }
-            gl.shader_source(f, &f_source);
-            gl.compile_shader(f);
-            gl.attach_shader(program, f);
-
-            //Link program
-            gl.link_program(program);
-            if !gl.get_program_link_status(program) {
-                panic!("{}", gl.get_program_info_log(program));
-            }
-
-            gl.use_program(Some(program));
-
-            //Cleanup
-            gl.delete_shader(v);
-            gl.delete_shader(f);
-
-            Self {
-                native_program: program,
-            }
-        }
+    //Vertex shader
+    let v = gl.create_shader(glow::VERTEX_SHADER).unwrap();
+    let error = gl.get_shader_info_log(v);
+    if !error.is_empty() {
+        panic!("{}", error);
     }
-    pub fn open(path: impl AsRef<Path>) -> String {
-        let mut file = File::open(path).unwrap();
-        let mut buf = String::new();
-        file.read_to_string(&mut buf).unwrap();
-        buf
+    gl.shader_source(v, &v_source);
+    gl.compile_shader(v);
+    gl.attach_shader(program, v);
+
+    //Fragment shader
+    let f = gl.create_shader(glow::FRAGMENT_SHADER).unwrap();
+    let error = gl.get_shader_info_log(f);
+    if !error.is_empty() {
+        panic!("{}", error);
     }
+    gl.shader_source(f, &f_source);
+    gl.compile_shader(f);
+    gl.attach_shader(program, f);
+
+    //Link program
+    gl.link_program(program);
+    if !gl.get_program_link_status(program) {
+        panic!("{}", gl.get_program_info_log(program));
+    }
+
+    gl.use_program(Some(program));
+
+    //Cleanup
+    gl.delete_shader(v);
+    gl.delete_shader(f);
+
+    program
 }
 
 fn buffer<T>(vertices: &[T]) -> &[u8] {
@@ -73,6 +64,57 @@ fn buffer<T>(vertices: &[T]) -> &[u8] {
             vertices.len() * core::mem::size_of::<T>(),
         )
     }
+}
+
+unsafe fn texture(gl: &Context, path: impl AsRef<Path>, png: bool, flip_v: bool) {
+    let im = image::open(path).unwrap();
+    let im = if flip_v { im.flipv() } else { im };
+
+    let texture = gl.create_texture().unwrap();
+    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MIN_FILTER,
+        glow::LINEAR as i32,
+    );
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MAG_FILTER,
+        glow::LINEAR as i32,
+    );
+
+    if png {
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGBA as i32,
+            im.width() as i32,
+            im.height() as i32,
+            0,
+            glow::RGBA,
+            glow::UNSIGNED_BYTE,
+            Some(im.as_bytes()),
+        );
+    } else {
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGB as i32,
+            im.width() as i32,
+            im.height() as i32,
+            0,
+            glow::RGB,
+            glow::UNSIGNED_BYTE,
+            Some(im.as_bytes()),
+        );
+    }
+
+    gl.generate_mipmap(glow::TEXTURE_2D);
+
+    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
 }
 
 fn main() {
@@ -92,9 +134,7 @@ fn main() {
 
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
 
-        let program = Program::new(&gl, "src/vertex.glsl", "src/fragment.glsl");
-
-        let im = image::open(&Path::new(&"wall.jpg")).unwrap();
+        let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
         {
             let vertices: &[f32] = &[
@@ -135,38 +175,11 @@ fn main() {
 
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
-            let texture = gl.create_texture().unwrap();
-            gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+            let ul = gl.get_uniform_location(program, "texture1").unwrap();
+            gl.uniform_1_i32(Some(&ul), 0);
 
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
-
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MIN_FILTER,
-                glow::LINEAR_MIPMAP_LINEAR as i32,
-            );
-
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MAG_FILTER,
-                glow::LINEAR as i32,
-            );
-
-            gl.tex_image_2d(
-                glow::TEXTURE_2D,
-                0,
-                glow::RGB as i32,
-                im.width() as i32,
-                im.height() as i32,
-                0,
-                glow::RGB,
-                glow::UNSIGNED_BYTE,
-                Some(im.as_bytes()),
-            );
-            gl.generate_mipmap(glow::TEXTURE_2D);
-
-            gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+            texture(&gl, "resources/textures/container.jpg", false, false);
+            texture(&gl, "resources/textures/awesomeface.png", true, true);
         }
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -192,7 +205,7 @@ fn main() {
                         window.resize(*physical_size);
                     }
                     WindowEvent::CloseRequested => {
-                        gl.delete_program(program.native_program);
+                        gl.delete_program(program);
                         // gl.delete_vertex_array(vertex_array);
                         *control_flow = ControlFlow::Exit
                     }
