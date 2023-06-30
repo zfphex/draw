@@ -66,57 +66,6 @@ fn buffer<T>(vertices: &[T]) -> &[u8] {
     }
 }
 
-unsafe fn texture(gl: &Context, path: impl AsRef<Path>, png: bool, flip_v: bool) {
-    let im = image::open(path).unwrap();
-    let im = if flip_v { im.flipv() } else { im };
-
-    let texture = gl.create_texture().unwrap();
-    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_MIN_FILTER,
-        glow::LINEAR as i32,
-    );
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_MAG_FILTER,
-        glow::LINEAR as i32,
-    );
-
-    if png {
-        gl.tex_image_2d(
-            glow::TEXTURE_2D,
-            0,
-            glow::RGBA as i32,
-            im.width() as i32,
-            im.height() as i32,
-            0,
-            glow::RGBA,
-            glow::UNSIGNED_BYTE,
-            Some(im.as_bytes()),
-        );
-    } else {
-        gl.tex_image_2d(
-            glow::TEXTURE_2D,
-            0,
-            glow::RGB as i32,
-            im.width() as i32,
-            im.height() as i32,
-            0,
-            glow::RGB,
-            glow::UNSIGNED_BYTE,
-            Some(im.as_bytes()),
-        );
-    }
-
-    gl.generate_mipmap(glow::TEXTURE_2D);
-
-    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-}
-
 fn main() {
     unsafe {
         let event_loop = glutin::event_loop::EventLoop::new();
@@ -175,11 +124,77 @@ fn main() {
 
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
-            let ul = gl.get_uniform_location(program, "texture1").unwrap();
-            gl.uniform_1_i32(Some(&ul), 0);
+            //First texture
+            let im = image::open("resources/textures/container.jpg").unwrap();
+            let texture1 = gl.create_texture().unwrap();
 
-            texture(&gl, "resources/textures/container.jpg", false, false);
-            texture(&gl, "resources/textures/awesomeface.png", true, true);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MIN_FILTER,
+                glow::LINEAR as i32,
+            );
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MAG_FILTER,
+                glow::LINEAR as i32,
+            );
+
+            gl.tex_image_2d(
+                glow::TEXTURE_2D,
+                0,
+                glow::RGB as i32,
+                im.width() as i32,
+                im.height() as i32,
+                0,
+                glow::RGB,
+                glow::UNSIGNED_BYTE,
+                Some(im.as_bytes()),
+            );
+
+            gl.generate_mipmap(glow::TEXTURE_2D);
+            gl.active_texture(glow::TEXTURE0);
+            gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
+
+            //Second texture
+            let im = image::open("resources/textures/awesomeface.png")
+                .unwrap()
+                .flipv();
+
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MIN_FILTER,
+                glow::LINEAR as i32,
+            );
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MAG_FILTER,
+                glow::LINEAR as i32,
+            );
+
+            gl.tex_image_2d(
+                glow::TEXTURE_2D,
+                0,
+                glow::RGBA as i32,
+                im.width() as i32,
+                im.height() as i32,
+                0,
+                glow::RGBA,
+                glow::UNSIGNED_BYTE,
+                Some(im.as_bytes()),
+            );
+
+            gl.generate_mipmap(glow::TEXTURE_2D);
+            gl.active_texture(glow::TEXTURE1);
+
+            let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
+            gl.uniform_1_i32(Some(&ul1), 0);
+
+            let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
+            gl.uniform_1_i32(Some(&ul2), 1);
         }
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
