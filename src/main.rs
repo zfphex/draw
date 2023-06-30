@@ -94,36 +94,83 @@ fn main() {
 
         let program = Program::new(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
-        {
-            let square: &[f32] = &[
-                -0.5, 0.5, 0.0, //Top Left
-                1.0, 0.0, 0.0, //Color
-                0.5, 0.5, 0.0, //Top Right
-                0.0, 1.0, 0.0, //Color
-                0.0, -0.5, 0.0, //Position
-                0.0, 0.0, 1.0, //Color
-            ];
+        let im = image::open(&Path::new(&"wall.jpg")).unwrap();
 
+        {
+            let vertices: &[f32] = &[
+                // positions          // colors           // texture coords
+                0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+                0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+                -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
+                -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
+            ];
+            let indices = [
+                0, 1, 3, // first triangle
+                1, 2, 3, // second triangle
+            ];
             let vao = gl.create_vertex_array().unwrap();
             let vbo = gl.create_buffer().unwrap();
+            let ebo = gl.create_buffer().unwrap();
 
             gl.bind_vertex_array(Some(vao));
 
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(square), glow::STATIC_DRAW);
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(vertices), glow::STATIC_DRAW);
 
-            //Position
-            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+            gl.buffer_data_u8_slice(
+                glow::ELEMENT_ARRAY_BUFFER,
+                buffer(&indices),
+                glow::STATIC_DRAW,
+            );
+
+            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 8 * 4, 0);
             gl.enable_vertex_attrib_array(0);
 
-            //Color
-            gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
+            gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 8 * 4, 3 * 4);
             gl.enable_vertex_attrib_array(1);
+
+            gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
+            gl.enable_vertex_attrib_array(2);
+
+            gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+
+            let texture = gl.create_texture().unwrap();
+            gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MIN_FILTER,
+                glow::LINEAR_MIPMAP_LINEAR as i32,
+            );
+
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_MAG_FILTER,
+                glow::LINEAR as i32,
+            );
+
+            gl.tex_image_2d(
+                glow::TEXTURE_2D,
+                0,
+                glow::RGB as i32,
+                im.width() as i32,
+                im.height() as i32,
+                0,
+                glow::RGB,
+                glow::UNSIGNED_BYTE,
+                Some(im.as_bytes()),
+            );
+            gl.generate_mipmap(glow::TEXTURE_2D);
+
+            gl.bind_texture(glow::TEXTURE_2D, Some(texture));
         }
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
-        //TODO: 6.8 Exercies 2
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             match event {
@@ -136,7 +183,7 @@ fn main() {
                 Event::RedrawRequested(_) => {
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT);
-                    gl.draw_arrays(glow::TRIANGLES, 0, 3);
+                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
                     window.swap_buffers().unwrap();
                 }
