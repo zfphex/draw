@@ -7,3 +7,5 @@ edition = "2021"
 glow = "0.12.1"
 glutin = { version = "0.28.0", features = [] }
 image = "0.24.6"
+nalgebra-glm = "0.18.0"
+

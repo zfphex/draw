@@ -1,10 +1,12 @@
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::{fs::File, time::Instant};
 
 use glow::*;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;
+
+extern crate nalgebra_glm as glm;
 
 pub fn open(path: impl AsRef<Path>) -> String {
     let mut file = File::open(path).unwrap();
@@ -154,7 +156,7 @@ fn main() {
             );
 
             gl.generate_mipmap(glow::TEXTURE_2D);
-            gl.active_texture(glow::TEXTURE0);
+            gl.active_texture(glow::TEXTURE1);
             gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
 
             //Second texture
@@ -188,16 +190,25 @@ fn main() {
             );
 
             gl.generate_mipmap(glow::TEXTURE_2D);
-            gl.active_texture(glow::TEXTURE1);
+            gl.active_texture(glow::TEXTURE0);
 
-            let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
-            gl.uniform_1_i32(Some(&ul1), 0);
+            let ul1 = gl.get_uniform_location(program, "texture1");
+            gl.uniform_1_i32(ul1.as_ref(), 0);
 
-            let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
-            gl.uniform_1_i32(Some(&ul2), 1);
+            let ul2 = gl.get_uniform_location(program, "texture2");
+            gl.uniform_1_i32(ul2.as_ref(), 1);
         }
 
+        // let mut transform = glm::identity();
+        // transform = glm::rotate(&transform, 90.0, &glm::vec3(0.0, 0.0, 1.0));
+        // transform = glm::scale(&transform, &glm::vec3(0.5, 0.5, 0.5));
+        // let location = gl.get_uniform_location(program, "transform").unwrap();
+        // gl.uniform_matrix_4_f32_slice(Some(&location), false, transform.as_slice());
+        let transform_location = gl.get_uniform_location(program, "transform").unwrap();
+
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
+
+        let now = Instant::now();
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
@@ -212,6 +223,19 @@ fn main() {
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT);
                     gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+
+                    let mut transform = glm::identity();
+                    transform = glm::rotate(
+                        &transform,
+                        now.elapsed().as_secs_f32(),
+                        &glm::vec3(0.0, 0.0, 1.0),
+                    );
+                    transform = glm::scale(&transform, &glm::vec3(0.5, 0.5, 0.5));
+                    gl.uniform_matrix_4_f32_slice(
+                        Some(&transform_location),
+                        false,
+                        transform.as_slice(),
+                    );
 
                     window.swap_buffers().unwrap();
                 }
