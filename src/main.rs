@@ -222,7 +222,6 @@ fn main() {
                 Event::RedrawRequested(_) => {
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT);
-                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
                     let mut transform = glm::identity();
                     transform = glm::rotate(
@@ -236,6 +235,26 @@ fn main() {
                         false,
                         transform.as_slice(),
                     );
+
+                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+
+                    //second
+                    transform = glm::translate(&transform, &glm::vec3(-0.5, 0.5, 0.0));
+                    gl.uniform_matrix_4_f32_slice(
+                        Some(&transform_location),
+                        false,
+                        transform.as_slice(),
+                    );
+                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+
+                    //third
+                    transform = glm::translate(&transform, &glm::vec3(-0.5, -0.5, 0.0));
+                    gl.uniform_matrix_4_f32_slice(
+                        Some(&transform_location),
+                        false,
+                        transform.as_slice(),
+                    );
+                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
                     window.swap_buffers().unwrap();
                 }
