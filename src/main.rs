@@ -84,6 +84,7 @@ fn main() {
             .unwrap();
 
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
+        gl.enable(glow::DEPTH_TEST);
 
         let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
@@ -268,7 +269,7 @@ fn main() {
                 }
                 Event::RedrawRequested(_) => {
                     //Clear must come first
-                    gl.clear(glow::COLOR_BUFFER_BIT);
+                    gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
                     let model = glm::rotate(
                         &glm::identity(),
