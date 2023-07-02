@@ -88,163 +88,163 @@ fn main() {
 
         let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
-        {
-            // let vertices: &[f32] = &[
-            //     // positions          // colors           // texture coords
-            //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-            //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-            //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
-            //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
-            // ];
+        // let vertices: &[f32] = &[
+        //     // positions          // colors           // texture coords
+        //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+        //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+        //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
+        //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
+        // ];
 
-            #[rustfmt::skip]
-            let vertices: &[f32] = &[
-                -0.5, -0.5, -0.5,  0.0, 0.0,
-                0.5, -0.5, -0.5,  1.0, 0.0,
-                0.5,  0.5, -0.5,  1.0, 1.0,
-                0.5,  0.5, -0.5,  1.0, 1.0,
-                -0.5,  0.5, -0.5,  0.0, 1.0,
-                -0.5, -0.5, -0.5,  0.0, 0.0,
+        #[rustfmt::skip]
+        let vertices: &[f32] = &[
+            -0.5, -0.5, -0.5,  0.0, 0.0,
+            0.5, -0.5, -0.5,  1.0, 0.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 0.0,
 
-                -0.5, -0.5,  0.5,  0.0, 0.0,
-                0.5, -0.5,  0.5,  1.0, 0.0,
-                0.5,  0.5,  0.5,  1.0, 1.0,
-                0.5,  0.5,  0.5,  1.0, 1.0,
-                -0.5,  0.5,  0.5,  0.0, 1.0,
-                -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 1.0,
+            0.5,  0.5,  0.5,  1.0, 1.0,
+            -0.5,  0.5,  0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
 
-                -0.5,  0.5,  0.5,  1.0, 0.0,
-                -0.5,  0.5, -0.5,  1.0, 1.0,
-                -0.5, -0.5, -0.5,  0.0, 1.0,
-                -0.5, -0.5, -0.5,  0.0, 1.0,
-                -0.5, -0.5,  0.5,  0.0, 0.0,
-                -0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5,  0.5,  1.0, 0.0,
 
-                0.5,  0.5,  0.5,  1.0, 0.0,
-                0.5,  0.5, -0.5,  1.0, 1.0,
-                0.5, -0.5, -0.5,  0.0, 1.0,
-                0.5, -0.5, -0.5,  0.0, 1.0,
-                0.5, -0.5,  0.5,  0.0, 0.0,
-                0.5,  0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5,  0.5,  0.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
 
-                -0.5, -0.5, -0.5,  0.0, 1.0,
-                0.5, -0.5, -0.5,  1.0, 1.0,
-                0.5, -0.5,  0.5,  1.0, 0.0,
-                0.5, -0.5,  0.5,  1.0, 0.0,
-                -0.5, -0.5,  0.5,  0.0, 0.0,
-                -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5, -0.5,  1.0, 1.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
 
-                -0.5,  0.5, -0.5,  0.0, 1.0,
-                0.5,  0.5, -0.5,  1.0, 1.0,
-                0.5,  0.5,  0.5,  1.0, 0.0,
-                0.5,  0.5,  0.5,  1.0, 0.0,
-                -0.5,  0.5,  0.5,  0.0, 0.0,
-                -0.5,  0.5, -0.5,  0.0, 1.0
-            ];
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0
+        ];
 
-            // let indices = [
-            //     0, 1, 3, // first triangle
-            //     1, 2, 3, // second triangle
-            // ];
-            let vao = gl.create_vertex_array().unwrap();
-            let vbo = gl.create_buffer().unwrap();
-            // let ebo = gl.create_buffer().unwrap();
+        #[rustfmt::skip]
+        let cube_positions = [
+            glm::vec3( 0.0,  0.0,  0.0),
+            glm::vec3( 2.0,  5.0, -15.0),
+            glm::vec3(-1.5, -2.2, -2.5),
+            glm::vec3(-3.8, -2.0, -12.3),
+            glm::vec3( 2.4, -0.4, -3.5),
+            glm::vec3(-1.7,  3.0, -7.5),
+            glm::vec3( 1.3, -2.0, -2.5),
+            glm::vec3( 1.5,  2.0, -2.5),
+            glm::vec3( 1.5,  0.2, -1.5),
+            glm::vec3(-1.3,  1.0, -1.5)
+        ];
 
-            gl.bind_vertex_array(Some(vao));
+        let vao = gl.create_vertex_array().unwrap();
+        let vbo = gl.create_buffer().unwrap();
 
-            gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(vertices), glow::STATIC_DRAW);
+        gl.bind_vertex_array(Some(vao));
 
-            // gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
-            // gl.buffer_data_u8_slice(
-            //     glow::ELEMENT_ARRAY_BUFFER,
-            //     buffer(&indices),
-            //     glow::STATIC_DRAW,
-            // );
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(vertices), glow::STATIC_DRAW);
 
-            // position attribute
-            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 5 * 4, 0);
-            gl.enable_vertex_attrib_array(0);
+        // position attribute
+        gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 5 * 4, 0);
+        gl.enable_vertex_attrib_array(0);
 
-            // texture coord attribute
-            gl.vertex_attrib_pointer_f32(1, 2, glow::FLOAT, false, 5 * 4, 3 * 4);
-            gl.enable_vertex_attrib_array(1);
+        // texture coord attribute
+        gl.vertex_attrib_pointer_f32(1, 2, glow::FLOAT, false, 5 * 4, 3 * 4);
+        gl.enable_vertex_attrib_array(1);
 
-            // gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
-            // gl.enable_vertex_attrib_array(2);
+        // gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
+        // gl.enable_vertex_attrib_array(2);
 
-            //First texture
-            let im = image::open("resources/textures/container.jpg").unwrap();
-            let texture1 = gl.create_texture().unwrap();
+        //First texture
+        let im = image::open("resources/textures/container.jpg").unwrap();
+        let texture1 = gl.create_texture().unwrap();
 
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MIN_FILTER,
-                glow::LINEAR as i32,
-            );
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MAG_FILTER,
-                glow::LINEAR as i32,
-            );
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MIN_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MAG_FILTER,
+            glow::LINEAR as i32,
+        );
 
-            gl.tex_image_2d(
-                glow::TEXTURE_2D,
-                0,
-                glow::RGB as i32,
-                im.width() as i32,
-                im.height() as i32,
-                0,
-                glow::RGB,
-                glow::UNSIGNED_BYTE,
-                Some(im.as_bytes()),
-            );
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGB as i32,
+            im.width() as i32,
+            im.height() as i32,
+            0,
+            glow::RGB,
+            glow::UNSIGNED_BYTE,
+            Some(im.as_bytes()),
+        );
 
-            gl.generate_mipmap(glow::TEXTURE_2D);
-            gl.active_texture(glow::TEXTURE1);
-            gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
+        gl.generate_mipmap(glow::TEXTURE_2D);
+        gl.active_texture(glow::TEXTURE1);
+        gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
 
-            //Second texture
-            let im = image::open("resources/textures/awesomeface.png")
-                .unwrap()
-                .flipv();
+        //Second texture
+        let im = image::open("resources/textures/awesomeface.png")
+            .unwrap()
+            .flipv();
 
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
-            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MIN_FILTER,
-                glow::LINEAR as i32,
-            );
-            gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_MAG_FILTER,
-                glow::LINEAR as i32,
-            );
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MIN_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MAG_FILTER,
+            glow::LINEAR as i32,
+        );
 
-            gl.tex_image_2d(
-                glow::TEXTURE_2D,
-                0,
-                glow::RGB as i32,
-                im.width() as i32,
-                im.height() as i32,
-                0,
-                glow::RGBA,
-                glow::UNSIGNED_BYTE,
-                Some(im.as_bytes()),
-            );
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGB as i32,
+            im.width() as i32,
+            im.height() as i32,
+            0,
+            glow::RGBA,
+            glow::UNSIGNED_BYTE,
+            Some(im.as_bytes()),
+        );
 
-            gl.generate_mipmap(glow::TEXTURE_2D);
-            gl.active_texture(glow::TEXTURE0);
+        gl.generate_mipmap(glow::TEXTURE_2D);
+        gl.active_texture(glow::TEXTURE0);
 
-            let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
-            gl.uniform_1_i32(Some(&ul1), 0);
+        let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
+        gl.uniform_1_i32(Some(&ul1), 0);
 
-            let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
-            gl.uniform_1_i32(Some(&ul2), 1);
-        }
+        let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
+        gl.uniform_1_i32(Some(&ul2), 1);
 
         let model_location = gl.get_uniform_location(program, "model").unwrap();
         let view_location = gl.get_uniform_location(program, "view").unwrap();
@@ -271,16 +271,9 @@ fn main() {
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-                    let model = glm::rotate(
-                        &glm::identity(),
-                        now.elapsed().as_secs_f32(),
-                        &glm::vec3(0.5, 1.0, 0.0),
-                    );
-
                     // note that we're translating the scene in the reverse direction of where we want to move
                     let view = glm::translate(&glm::identity(), &glm::vec3(0.0, 0.0, -3.0));
                     let projection = glm::perspective(width / height, 45.0, 0.1, 100.0);
-                    gl.uniform_matrix_4_f32_slice(Some(&model_location), false, model.as_slice());
                     gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
                     gl.uniform_matrix_4_f32_slice(
                         Some(&projection_location),
@@ -288,8 +281,23 @@ fn main() {
                         projection.as_slice(),
                     );
 
-                    // gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
-                    gl.draw_arrays(glow::TRIANGLES, 0, 36);
+                    for (i, cube) in cube_positions.iter().enumerate() {
+                        // calculate the model matrix for each object and pass it to shader before drawing
+                        let mut model = glm::translate(&glm::identity(), &cube);
+                        model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
+                        model = glm::rotate(
+                            &model,
+                            now.elapsed().as_secs_f32(),
+                            &glm::vec3(0.5, 1.0, 0.0),
+                        );
+                        gl.uniform_matrix_4_f32_slice(
+                            Some(&model_location),
+                            false,
+                            model.as_slice(),
+                        );
+
+                        gl.draw_arrays(glow::TRIANGLES, 0, 36);
+                    }
 
                     window.swap_buffers().unwrap();
                 }
