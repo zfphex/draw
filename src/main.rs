@@ -273,7 +273,7 @@ fn main() {
 
                     // note that we're translating the scene in the reverse direction of where we want to move
                     let view = glm::translate(&glm::identity(), &glm::vec3(0.0, 0.0, -3.0));
-                    let projection = glm::perspective(width / height, 45.0, 0.1, 100.0);
+                    let projection = glm::perspective(1024.0 / 768.0, 45.0, 0.1, 100.0);
                     gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
                     gl.uniform_matrix_4_f32_slice(
                         Some(&projection_location),
@@ -287,7 +287,7 @@ fn main() {
                         model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
                         model = glm::rotate(
                             &model,
-                            now.elapsed().as_secs_f32(),
+                            (i as f32 + 1.0) * now.elapsed().as_secs_f32(),
                             &glm::vec3(0.5, 1.0, 0.0),
                         );
                         gl.uniform_matrix_4_f32_slice(
