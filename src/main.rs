@@ -85,6 +85,7 @@ fn main() {
 
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
         gl.enable(glow::DEPTH_TEST);
+        let now = Instant::now();
 
         let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
@@ -252,13 +253,48 @@ fn main() {
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
-        let now = Instant::now();
+        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+        let camera_target = glm::vec3(0.0, 0.0, 0.0);
+        let camera_direction = glm::normalize(&(camera_pos - camera_target));
+
+        let up = glm::vec3(0.0, 1.0, 0.0);
+        let cameraRight = glm::normalize(&glm::cross(&glm::vec3(0.0, 1.0, 0.0), &camera_direction));
+
+        let view = glm::look_at(
+            &glm::vec3(0.0, 0.0, 3.0),
+            &glm::vec3(0.0, 0.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
+        );
+        let radius = 10.0;
+        let camX = f32::sin(now.elapsed().as_secs_f32()) * radius;
+        let camZ = f32::cos(now.elapsed().as_secs_f32()) * radius;
+        let view = glm::look_at(
+            &glm::vec3(camX, 0.0, camZ),
+            &glm::vec3(0.0, 0.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
+        );
+
+        let mut frame_count = 0;
+        let mut start_time = std::time::Instant::now();
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
 
             let size = window.window().inner_size();
             let (width, height) = (size.width as f32, size.height as f32);
+
+            // Calculate the elapsed time since the start
+            let elapsed = start_time.elapsed().as_secs_f32();
+
+            // Calculate and display the framerate every second
+            if elapsed >= 1.0 {
+                let _framerate = frame_count as f32 / elapsed;
+                // println!("Framerate: {:.2}", _framerate);
+
+                // Reset the frame count and start time
+                frame_count = 0;
+                start_time = std::time::Instant::now();
+            }
 
             match event {
                 Event::LoopDestroyed => {
@@ -268,6 +304,7 @@ fn main() {
                     window.window().request_redraw();
                 }
                 Event::RedrawRequested(_) => {
+                    frame_count += 1;
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
@@ -281,13 +318,26 @@ fn main() {
                         projection.as_slice(),
                     );
 
+                    // camera/view transformation
+                    let radius = 8.0;
+                    let cam_x = f32::sin(now.elapsed().as_secs_f32()) * radius;
+                    let cam_z = f32::cos(now.elapsed().as_secs_f32()) * radius;
+                    // let cam_y = (1.0 / now.elapsed().as_secs_f32()) * radius;
+                    let cam_y = 0.0;
+                    let view = glm::look_at(
+                        &glm::vec3(cam_x, cam_y, cam_z),
+                        &glm::vec3(0.0, 0.0, 0.0),
+                        &glm::vec3(0.0, 1.0, 0.0),
+                    );
+                    gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
+
                     for (i, cube) in cube_positions.iter().enumerate() {
                         // calculate the model matrix for each object and pass it to shader before drawing
                         let mut model = glm::translate(&glm::identity(), &cube);
                         model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
                         model = glm::rotate(
                             &model,
-                            (i as f32 + 1.0) * now.elapsed().as_secs_f32(),
+                            (i as f32 + 1.0) * now.elapsed().as_secs_f32() / 4.0,
                             &glm::vec3(0.5, 1.0, 0.0),
                         );
                         gl.uniform_matrix_4_f32_slice(
