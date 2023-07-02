@@ -88,43 +88,89 @@ fn main() {
         let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
 
         {
+            // let vertices: &[f32] = &[
+            //     // positions          // colors           // texture coords
+            //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+            //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+            //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
+            //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
+            // ];
+
+            #[rustfmt::skip]
             let vertices: &[f32] = &[
-                // positions          // colors           // texture coords
-                0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-                0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-                -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
-                -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
+                -0.5, -0.5, -0.5,  0.0, 0.0,
+                0.5, -0.5, -0.5,  1.0, 0.0,
+                0.5,  0.5, -0.5,  1.0, 1.0,
+                0.5,  0.5, -0.5,  1.0, 1.0,
+                -0.5,  0.5, -0.5,  0.0, 1.0,
+                -0.5, -0.5, -0.5,  0.0, 0.0,
+
+                -0.5, -0.5,  0.5,  0.0, 0.0,
+                0.5, -0.5,  0.5,  1.0, 0.0,
+                0.5,  0.5,  0.5,  1.0, 1.0,
+                0.5,  0.5,  0.5,  1.0, 1.0,
+                -0.5,  0.5,  0.5,  0.0, 1.0,
+                -0.5, -0.5,  0.5,  0.0, 0.0,
+
+                -0.5,  0.5,  0.5,  1.0, 0.0,
+                -0.5,  0.5, -0.5,  1.0, 1.0,
+                -0.5, -0.5, -0.5,  0.0, 1.0,
+                -0.5, -0.5, -0.5,  0.0, 1.0,
+                -0.5, -0.5,  0.5,  0.0, 0.0,
+                -0.5,  0.5,  0.5,  1.0, 0.0,
+
+                0.5,  0.5,  0.5,  1.0, 0.0,
+                0.5,  0.5, -0.5,  1.0, 1.0,
+                0.5, -0.5, -0.5,  0.0, 1.0,
+                0.5, -0.5, -0.5,  0.0, 1.0,
+                0.5, -0.5,  0.5,  0.0, 0.0,
+                0.5,  0.5,  0.5,  1.0, 0.0,
+
+                -0.5, -0.5, -0.5,  0.0, 1.0,
+                0.5, -0.5, -0.5,  1.0, 1.0,
+                0.5, -0.5,  0.5,  1.0, 0.0,
+                0.5, -0.5,  0.5,  1.0, 0.0,
+                -0.5, -0.5,  0.5,  0.0, 0.0,
+                -0.5, -0.5, -0.5,  0.0, 1.0,
+
+                -0.5,  0.5, -0.5,  0.0, 1.0,
+                0.5,  0.5, -0.5,  1.0, 1.0,
+                0.5,  0.5,  0.5,  1.0, 0.0,
+                0.5,  0.5,  0.5,  1.0, 0.0,
+                -0.5,  0.5,  0.5,  0.0, 0.0,
+                -0.5,  0.5, -0.5,  0.0, 1.0
             ];
-            let indices = [
-                0, 1, 3, // first triangle
-                1, 2, 3, // second triangle
-            ];
+
+            // let indices = [
+            //     0, 1, 3, // first triangle
+            //     1, 2, 3, // second triangle
+            // ];
             let vao = gl.create_vertex_array().unwrap();
             let vbo = gl.create_buffer().unwrap();
-            let ebo = gl.create_buffer().unwrap();
+            // let ebo = gl.create_buffer().unwrap();
 
             gl.bind_vertex_array(Some(vao));
 
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(vertices), glow::STATIC_DRAW);
 
-            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
-            gl.buffer_data_u8_slice(
-                glow::ELEMENT_ARRAY_BUFFER,
-                buffer(&indices),
-                glow::STATIC_DRAW,
-            );
+            // gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+            // gl.buffer_data_u8_slice(
+            //     glow::ELEMENT_ARRAY_BUFFER,
+            //     buffer(&indices),
+            //     glow::STATIC_DRAW,
+            // );
 
-            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 8 * 4, 0);
+            // position attribute
+            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 5 * 4, 0);
             gl.enable_vertex_attrib_array(0);
 
-            gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 8 * 4, 3 * 4);
+            // texture coord attribute
+            gl.vertex_attrib_pointer_f32(1, 2, glow::FLOAT, false, 5 * 4, 3 * 4);
             gl.enable_vertex_attrib_array(1);
 
-            gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
-            gl.enable_vertex_attrib_array(2);
-
-            gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+            // gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
+            // gl.enable_vertex_attrib_array(2);
 
             //First texture
             let im = image::open("resources/textures/container.jpg").unwrap();
@@ -180,7 +226,7 @@ fn main() {
             gl.tex_image_2d(
                 glow::TEXTURE_2D,
                 0,
-                glow::RGBA as i32,
+                glow::RGB as i32,
                 im.width() as i32,
                 im.height() as i32,
                 0,
@@ -192,19 +238,16 @@ fn main() {
             gl.generate_mipmap(glow::TEXTURE_2D);
             gl.active_texture(glow::TEXTURE0);
 
-            let ul1 = gl.get_uniform_location(program, "texture1");
-            gl.uniform_1_i32(ul1.as_ref(), 0);
+            let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
+            gl.uniform_1_i32(Some(&ul1), 0);
 
-            let ul2 = gl.get_uniform_location(program, "texture2");
-            gl.uniform_1_i32(ul2.as_ref(), 1);
+            let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
+            gl.uniform_1_i32(Some(&ul2), 1);
         }
 
-        // let mut transform = glm::identity();
-        // transform = glm::rotate(&transform, 90.0, &glm::vec3(0.0, 0.0, 1.0));
-        // transform = glm::scale(&transform, &glm::vec3(0.5, 0.5, 0.5));
-        // let location = gl.get_uniform_location(program, "transform").unwrap();
-        // gl.uniform_matrix_4_f32_slice(Some(&location), false, transform.as_slice());
-        let transform_location = gl.get_uniform_location(program, "transform").unwrap();
+        let model_location = gl.get_uniform_location(program, "model").unwrap();
+        let view_location = gl.get_uniform_location(program, "view").unwrap();
+        let projection_location = gl.get_uniform_location(program, "projection").unwrap();
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
@@ -212,6 +255,10 @@ fn main() {
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
+
+            let size = window.window().inner_size();
+            let (width, height) = (size.width as f32, size.height as f32);
+
             match event {
                 Event::LoopDestroyed => {
                     return;
@@ -223,38 +270,25 @@ fn main() {
                     //Clear must come first
                     gl.clear(glow::COLOR_BUFFER_BIT);
 
-                    let mut transform = glm::identity();
-                    transform = glm::rotate(
-                        &transform,
+                    let model = glm::rotate(
+                        &glm::identity(),
                         now.elapsed().as_secs_f32(),
-                        &glm::vec3(0.0, 0.0, 1.0),
-                    );
-                    transform = glm::scale(&transform, &glm::vec3(0.5, 0.5, 0.5));
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(&transform_location),
-                        false,
-                        transform.as_slice(),
+                        &glm::vec3(0.5, 1.0, 0.0),
                     );
 
-                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
-
-                    //second
-                    transform = glm::translate(&transform, &glm::vec3(-0.5, 0.5, 0.0));
+                    // note that we're translating the scene in the reverse direction of where we want to move
+                    let view = glm::translate(&glm::identity(), &glm::vec3(0.0, 0.0, -3.0));
+                    let projection = glm::perspective(width / height, 45.0, 0.1, 100.0);
+                    gl.uniform_matrix_4_f32_slice(Some(&model_location), false, model.as_slice());
+                    gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
                     gl.uniform_matrix_4_f32_slice(
-                        Some(&transform_location),
+                        Some(&projection_location),
                         false,
-                        transform.as_slice(),
+                        projection.as_slice(),
                     );
-                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
 
-                    //third
-                    transform = glm::translate(&transform, &glm::vec3(-0.5, -0.5, 0.0));
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(&transform_location),
-                        false,
-                        transform.as_slice(),
-                    );
-                    gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+                    // gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+                    gl.draw_arrays(glow::TRIANGLES, 0, 36);
 
                     window.swap_buffers().unwrap();
                 }
