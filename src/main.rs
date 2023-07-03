@@ -3,7 +3,7 @@ use std::path::Path;
 use std::{fs::File, time::Instant};
 
 use glow::*;
-use glutin::event::{Event, WindowEvent};
+use glutin::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use glutin::event_loop::ControlFlow;
 
 extern crate nalgebra_glm as glm;
@@ -249,86 +249,33 @@ fn main() {
 
         let model_location = gl.get_uniform_location(program, "model").unwrap();
         let view_location = gl.get_uniform_location(program, "view").unwrap();
+
         let projection_location = gl.get_uniform_location(program, "projection").unwrap();
+        let projection = glm::perspective(1024.0 / 768.0, 45.0, 0.1, 100.0);
+        gl.uniform_matrix_4_f32_slice(Some(&projection_location), false, projection.as_slice());
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
-        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
-        let camera_target = glm::vec3(0.0, 0.0, 0.0);
-        let camera_direction = glm::normalize(&(camera_pos - camera_target));
+        let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
+        let camera_front = glm::vec3(0.0, 0.0, -1.0);
+        let camera_up = glm::vec3(0.0, 1.0, 0.0);
 
-        let up = glm::vec3(0.0, 1.0, 0.0);
-        let cameraRight = glm::normalize(&glm::cross(&glm::vec3(0.0, 1.0, 0.0), &camera_direction));
-
-        let view = glm::look_at(
-            &glm::vec3(0.0, 0.0, 3.0),
-            &glm::vec3(0.0, 0.0, 0.0),
-            &glm::vec3(0.0, 1.0, 0.0),
-        );
-        let radius = 10.0;
-        let camX = f32::sin(now.elapsed().as_secs_f32()) * radius;
-        let camZ = f32::cos(now.elapsed().as_secs_f32()) * radius;
-        let view = glm::look_at(
-            &glm::vec3(camX, 0.0, camZ),
-            &glm::vec3(0.0, 0.0, 0.0),
-            &glm::vec3(0.0, 1.0, 0.0),
-        );
-
-        let mut frame_count = 0;
-        let mut start_time = std::time::Instant::now();
+        let mut delta_time = 0.0;
+        let mut last_frame = 0.0;
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
 
-            let size = window.window().inner_size();
-            let (width, height) = (size.width as f32, size.height as f32);
-
-            // Calculate the elapsed time since the start
-            let elapsed = start_time.elapsed().as_secs_f32();
-
-            // Calculate and display the framerate every second
-            if elapsed >= 1.0 {
-                let _framerate = frame_count as f32 / elapsed;
-                // println!("Framerate: {:.2}", _framerate);
-
-                // Reset the frame count and start time
-                frame_count = 0;
-                start_time = std::time::Instant::now();
-            }
-
             match event {
-                Event::LoopDestroyed => {
-                    return;
-                }
-                Event::MainEventsCleared => {
-                    window.window().request_redraw();
-                }
                 Event::RedrawRequested(_) => {
-                    frame_count += 1;
-                    //Clear must come first
+                    let current_frame = now.elapsed().as_secs_f32();
+                    delta_time = current_frame - last_frame;
+                    last_frame = current_frame;
+
                     gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-                    // note that we're translating the scene in the reverse direction of where we want to move
-                    let view = glm::translate(&glm::identity(), &glm::vec3(0.0, 0.0, -3.0));
-                    let projection = glm::perspective(1024.0 / 768.0, 45.0, 0.1, 100.0);
-                    gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(&projection_location),
-                        false,
-                        projection.as_slice(),
-                    );
-
                     // camera/view transformation
-                    let radius = 8.0;
-                    let cam_x = f32::sin(now.elapsed().as_secs_f32()) * radius;
-                    let cam_z = f32::cos(now.elapsed().as_secs_f32()) * radius;
-                    // let cam_y = (1.0 / now.elapsed().as_secs_f32()) * radius;
-                    let cam_y = 0.0;
-                    let view = glm::look_at(
-                        &glm::vec3(cam_x, cam_y, cam_z),
-                        &glm::vec3(0.0, 0.0, 0.0),
-                        &glm::vec3(0.0, 1.0, 0.0),
-                    );
+                    let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
                     gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
 
                     for (i, cube) in cube_positions.iter().enumerate() {
@@ -352,16 +299,48 @@ fn main() {
                     window.swap_buffers().unwrap();
                 }
                 Event::WindowEvent { ref event, .. } => match event {
+                    WindowEvent::KeyboardInput {
+                        device_id: _,
+                        ref input,
+                        is_synthetic: _,
+                    } => {
+                        let camera_speed = 20.0 * delta_time;
+                        if input.state == ElementState::Pressed {
+                            if let Some(key) = input.virtual_keycode {
+                                if key == VirtualKeyCode::W {
+                                    camera_pos += camera_speed * camera_front;
+                                }
+                                if key == VirtualKeyCode::S {
+                                    camera_pos -= camera_speed * camera_front;
+                                }
+                                if key == VirtualKeyCode::A {
+                                    camera_pos -=
+                                        glm::normalize(&glm::cross(&camera_front, &camera_up))
+                                            * camera_speed;
+                                }
+                                if key == VirtualKeyCode::D {
+                                    camera_pos +=
+                                        glm::normalize(&glm::cross(&camera_front, &camera_up))
+                                            * camera_speed;
+                                }
+                            }
+                        }
+                    }
                     WindowEvent::Resized(physical_size) => {
                         window.resize(*physical_size);
                     }
                     WindowEvent::CloseRequested => {
                         gl.delete_program(program);
-                        // gl.delete_vertex_array(vertex_array);
                         *control_flow = ControlFlow::Exit
                     }
                     _ => (),
                 },
+                Event::LoopDestroyed => {
+                    return;
+                }
+                Event::MainEventsCleared => {
+                    window.window().request_redraw();
+                }
                 _ => (),
             }
         });
