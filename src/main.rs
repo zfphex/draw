@@ -3,8 +3,6 @@ use std::path::Path;
 use std::{fs::File, time::Instant};
 
 use glow::*;
-use glutin::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
-use glutin::event_loop::ControlFlow;
 
 extern crate nalgebra_glm as glm;
 
@@ -68,34 +66,31 @@ fn buffer<T>(vertices: &[T]) -> &[u8] {
     }
 }
 
+const WINDOW_WIDTH: u32 = 1024;
+const WINDOW_HEIGHT: u32 = 768;
+
 fn main() {
     unsafe {
-        let event_loop = glutin::event_loop::EventLoop::new();
+        use glfw::Context;
 
-        let window_builder = glutin::window::WindowBuilder::new()
-            .with_title("OpenGL Window")
-            .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
+        //Window
+        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+        let (mut window, events) = glfw
+            .create_window(
+                WINDOW_WIDTH,
+                WINDOW_HEIGHT,
+                "Triangle",
+                glfw::WindowMode::Windowed,
+            )
+            .expect("Failed to create GLFW window.");
+        window.set_key_polling(true);
+        window.make_current();
 
-        let window = glutin::ContextBuilder::new()
-            .with_vsync(true)
-            .build_windowed(window_builder, &event_loop)
-            .unwrap()
-            .make_current()
-            .unwrap();
-
+        //OpenGL
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
         gl.enable(glow::DEPTH_TEST);
-        let now = Instant::now();
 
         let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
-
-        // let vertices: &[f32] = &[
-        //     // positions          // colors           // texture coords
-        //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-        //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-        //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
-        //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top let
-        // ];
 
         #[rustfmt::skip]
         let vertices: &[f32] = &[
@@ -171,9 +166,6 @@ fn main() {
         // texture coord attribute
         gl.vertex_attrib_pointer_f32(1, 2, glow::FLOAT, false, 5 * 4, 3 * 4);
         gl.enable_vertex_attrib_array(1);
-
-        // gl.vertex_attrib_pointer_f32(2, 2, glow::FLOAT, false, 8 * 4, 6 * 4);
-        // gl.enable_vertex_attrib_array(2);
 
         //First texture
         let im = image::open("resources/textures/container.jpg").unwrap();
@@ -260,89 +252,68 @@ fn main() {
         let camera_front = glm::vec3(0.0, 0.0, -1.0);
         let camera_up = glm::vec3(0.0, 1.0, 0.0);
 
-        let mut delta_time = 0.0;
-        let mut last_frame = 0.0;
+        let mut delta_time: f32 = 0.0;
+        let mut last_frame: f32 = 0.0;
 
-        event_loop.run(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Poll;
+        while !window.should_close() {
+            use glfw::{Action, Key, WindowEvent};
 
-            match event {
-                Event::RedrawRequested(_) => {
-                    let current_frame = now.elapsed().as_secs_f32();
-                    delta_time = current_frame - last_frame;
-                    last_frame = current_frame;
+            let current_frame = glfw.get_time() as f32;
+            delta_time = current_frame - last_frame;
+            last_frame = current_frame;
 
-                    gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+            let camera_speed = 5.0 * delta_time;
 
-                    // camera/view transformation
-                    let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
-                    gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
-
-                    for (i, cube) in cube_positions.iter().enumerate() {
-                        // calculate the model matrix for each object and pass it to shader before drawing
-                        let mut model = glm::translate(&glm::identity(), &cube);
-                        model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
-                        model = glm::rotate(
-                            &model,
-                            (i as f32 + 1.0) * now.elapsed().as_secs_f32() / 4.0,
-                            &glm::vec3(0.5, 1.0, 0.0),
-                        );
-                        gl.uniform_matrix_4_f32_slice(
-                            Some(&model_location),
-                            false,
-                            model.as_slice(),
-                        );
-
-                        gl.draw_arrays(glow::TRIANGLES, 0, 36);
-                    }
-
-                    window.swap_buffers().unwrap();
-                }
-                Event::WindowEvent { ref event, .. } => match event {
-                    WindowEvent::KeyboardInput {
-                        device_id: _,
-                        ref input,
-                        is_synthetic: _,
-                    } => {
-                        let camera_speed = 20.0 * delta_time;
-                        if input.state == ElementState::Pressed {
-                            if let Some(key) = input.virtual_keycode {
-                                if key == VirtualKeyCode::W {
-                                    camera_pos += camera_speed * camera_front;
-                                }
-                                if key == VirtualKeyCode::S {
-                                    camera_pos -= camera_speed * camera_front;
-                                }
-                                if key == VirtualKeyCode::A {
-                                    camera_pos -=
-                                        glm::normalize(&glm::cross(&camera_front, &camera_up))
-                                            * camera_speed;
-                                }
-                                if key == VirtualKeyCode::D {
-                                    camera_pos +=
-                                        glm::normalize(&glm::cross(&camera_front, &camera_up))
-                                            * camera_speed;
-                                }
-                            }
-                        }
-                    }
-                    WindowEvent::Resized(physical_size) => {
-                        window.resize(*physical_size);
-                    }
-                    WindowEvent::CloseRequested => {
-                        gl.delete_program(program);
-                        *control_flow = ControlFlow::Exit
-                    }
-                    _ => (),
-                },
-                Event::LoopDestroyed => {
-                    return;
-                }
-                Event::MainEventsCleared => {
-                    window.window().request_redraw();
-                }
-                _ => (),
+            //Camera Input
+            if window.get_key(Key::W) == Action::Press {
+                camera_pos += camera_speed * camera_front;
+                dbg!(camera_speed);
             }
-        });
+            if window.get_key(Key::S) == Action::Press {
+                camera_pos -= camera_speed * camera_front;
+            }
+            if window.get_key(Key::A) == Action::Press {
+                camera_pos -= glm::normalize(&glm::cross(&camera_front, &camera_up)) * camera_speed;
+            }
+            if window.get_key(Key::D) == Action::Press {
+                camera_pos += glm::normalize(&glm::cross(&camera_front, &camera_up)) * camera_speed;
+            }
+
+            for (_, event) in glfw::flush_messages(&events) {
+                match event {
+                    WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                        window.set_should_close(true)
+                    }
+                    WindowEvent::Close => window.set_should_close(true),
+                    _ => {}
+                }
+            }
+
+            //Rendering
+
+            gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+
+            // camera/view transformation
+            let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
+            gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
+
+            for (i, cube) in cube_positions.iter().enumerate() {
+                // calculate the model matrix for each object and pass it to shader before drawing
+                let mut model = glm::translate(&glm::identity(), &cube);
+                model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
+                model = glm::rotate(
+                    &model,
+                    (i as f32 + 1.0) * glfw.get_time() as f32 / 4.0,
+                    &glm::vec3(0.5, 1.0, 0.0),
+                );
+                gl.uniform_matrix_4_f32_slice(Some(&model_location), false, model.as_slice());
+
+                gl.draw_arrays(glow::TRIANGLES, 0, 36);
+            }
+
+            window.swap_buffers();
+            glfw.poll_events();
+        }
+        gl.delete_program(program);
     }
 }

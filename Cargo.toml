@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+glfw = "0.52.0"
 glow = "0.12.1"
-glutin = { version = "0.28.0", features = [] }
 image = "0.24.6"
 nalgebra-glm = "0.18.0"
 
