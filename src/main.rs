@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use glfw::{Action, Key, WindowEvent};
 use glow::*;
 
 extern crate nalgebra_glm as glm;
@@ -256,8 +257,6 @@ fn main() {
         let mut last_frame: f32 = 0.0;
 
         while !window.should_close() {
-            use glfw::{Action, Key, WindowEvent};
-
             let current_frame = glfw.get_time() as f32;
             delta_time = current_frame - last_frame;
             last_frame = current_frame;
