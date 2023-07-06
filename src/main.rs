@@ -1,6 +1,6 @@
+use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::{fs::File, time::Instant};
 
 use glow::*;
 
@@ -252,7 +252,7 @@ fn main() {
         let camera_front = glm::vec3(0.0, 0.0, -1.0);
         let camera_up = glm::vec3(0.0, 1.0, 0.0);
 
-        let mut delta_time: f32 = 0.0;
+        let mut delta_time: f32;
         let mut last_frame: f32 = 0.0;
 
         while !window.should_close() {
@@ -267,7 +267,6 @@ fn main() {
             //Camera Input
             if window.get_key(Key::W) == Action::Press {
                 camera_pos += camera_speed * camera_front;
-                dbg!(camera_speed);
             }
             if window.get_key(Key::S) == Action::Press {
                 camera_pos -= camera_speed * camera_front;
