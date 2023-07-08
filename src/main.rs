@@ -85,6 +85,8 @@ fn main() {
             )
             .expect("Failed to create GLFW window.");
         window.set_key_polling(true);
+        window.set_cursor_pos_polling(true);
+        window.set_cursor_mode(glfw::CursorMode::Disabled);
         window.make_current();
 
         //OpenGL
@@ -250,11 +252,22 @@ fn main() {
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
         let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
-        let camera_front = glm::vec3(0.0, 0.0, -1.0);
+        let mut camera_front = glm::vec3(0.0, 0.0, -1.0);
         let camera_up = glm::vec3(0.0, 1.0, 0.0);
 
         let mut delta_time: f32;
         let mut last_frame: f32 = 0.0;
+
+        //Mouse
+        let mut first_mouse = true;
+        // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+        let mut yaw: f32 = -90.0;
+        let mut pitch: f32 = 0.0;
+        let mut last_x: f32 = 800.0 / 2.0;
+        let mut last_y: f32 = 600.0 / 2.0;
+        let sensitivity: f32 = 0.001;
+
+        // let fov: f32 = 45.0;
 
         while !window.should_close() {
             let current_frame = glfw.get_time() as f32;
@@ -277,18 +290,51 @@ fn main() {
                 camera_pos += glm::normalize(&glm::cross(&camera_front, &camera_up)) * camera_speed;
             }
 
+            //Events
             for (_, event) in glfw::flush_messages(&events) {
                 match event {
                     WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                         window.set_should_close(true)
                     }
                     WindowEvent::Close => window.set_should_close(true),
+                    WindowEvent::CursorPos(x, y) => {
+                        let (x, y) = (x as f32, y as f32);
+                        if first_mouse {
+                            last_x = x;
+                            last_y = y;
+                            first_mouse = false;
+                        }
+                        let mut xoffset = x - last_x;
+                        let mut yoffset = last_y - y;
+                        // reversed since y-coordinates go from bottom to top
+                        last_x = x;
+                        last_y = y;
+
+                        xoffset *= sensitivity;
+                        yoffset *= sensitivity;
+
+                        yaw += xoffset;
+                        pitch += yoffset;
+
+                        // make sure that when pitch is out of bounds, screen doesn't get flipped
+                        if pitch > 89.0 {
+                            pitch = 89.0;
+                        }
+                        if pitch < -89.0 {
+                            pitch = -89.0;
+                        }
+
+                        let mut front = glm::vec3(0.0, 0.0, 0.0);
+                        front.x = f32::cos(yaw) * f32::cos(pitch);
+                        front.y = f32::sin(pitch);
+                        front.z = f32::sin(yaw) * f32::cos(pitch);
+                        camera_front = glm::normalize(&front);
+                    }
                     _ => {}
                 }
             }
 
             //Rendering
-
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
             // camera/view transformation
