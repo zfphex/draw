@@ -2,7 +2,7 @@ use std::io::Read;
 use std::path::Path;
 use std::{f32::consts::PI, fs::File};
 
-use glfw::{Action, Key, WindowEvent};
+use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::*;
 
 extern crate nalgebra_glm as glm;
@@ -71,19 +71,22 @@ fn radians(input: f32) -> f32 {
     input * PI / 180.0
 }
 
-const WINDOW_WIDTH: u32 = 1024;
-const WINDOW_HEIGHT: u32 = 768;
-
 fn main() {
     unsafe {
         use glfw::Context;
 
         //Window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+        let monitor = Monitor::from_primary();
+        let video_mode = monitor.get_video_mode().unwrap();
+        let (width, height) = (
+            video_mode.width as f32 / 1.5,
+            video_mode.height as f32 / 1.5,
+        );
         let (mut window, events) = glfw
             .create_window(
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT,
+                width as u32,
+                height as u32,
                 "Triangle",
                 glfw::WindowMode::Windowed,
             )
@@ -250,7 +253,7 @@ fn main() {
         let view_location = gl.get_uniform_location(program, "view").unwrap();
 
         let projection_location = gl.get_uniform_location(program, "projection").unwrap();
-        let projection = glm::perspective(1024.0 / 768.0, 45.0, 0.1, 100.0);
+        let projection = glm::perspective(width as f32 / height as f32, 45.0, 0.1, 100.0);
         gl.uniform_matrix_4_f32_slice(Some(&projection_location), false, projection.as_slice());
 
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -319,9 +322,6 @@ fn main() {
 
                         yaw += xoffset;
                         pitch += yoffset;
-
-                        // make sure that when pitch is out of bounds, screen doesn't get flipped
-                        println!("{}", pitch);
 
                         if pitch > 89.9 {
                             pitch = 89.9;
