@@ -1,6 +1,6 @@
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::{f32::consts::PI, fs::File};
 
 use glfw::{Action, Key, WindowEvent};
 use glow::*;
@@ -65,6 +65,10 @@ fn buffer<T>(vertices: &[T]) -> &[u8] {
             vertices.len() * core::mem::size_of::<T>(),
         )
     }
+}
+
+fn radians(input: f32) -> f32 {
+    input * PI / 180.0
 }
 
 const WINDOW_WIDTH: u32 = 1024;
@@ -265,7 +269,7 @@ fn main() {
         let mut pitch: f32 = 0.0;
         let mut last_x: f32 = 800.0 / 2.0;
         let mut last_y: f32 = 600.0 / 2.0;
-        let sensitivity: f32 = 0.001;
+        let sensitivity: f32 = 0.1;
 
         // let fov: f32 = 45.0;
 
@@ -317,17 +321,24 @@ fn main() {
                         pitch += yoffset;
 
                         // make sure that when pitch is out of bounds, screen doesn't get flipped
-                        if pitch > 89.0 {
-                            pitch = 89.0;
+                        println!("{}", pitch);
+
+                        if pitch > 89.9 {
+                            pitch = 89.9;
                         }
-                        if pitch < -89.0 {
-                            pitch = -89.0;
+                        if pitch < -89.9 {
+                            pitch = -89.9;
                         }
 
                         let mut front = glm::vec3(0.0, 0.0, 0.0);
-                        front.x = f32::cos(yaw) * f32::cos(pitch);
-                        front.y = f32::sin(pitch);
-                        front.z = f32::sin(yaw) * f32::cos(pitch);
+                        // front.x = f32::cos(yaw) * f32::cos(pitch);
+                        // front.y = f32::sin(pitch);
+                        // front.z = f32::sin(yaw) * f32::cos(pitch);
+
+                        front.x = f32::cos(radians(yaw)) * f32::cos(radians(pitch));
+                        front.y = f32::sin(radians(pitch));
+                        front.z = f32::sin(radians(yaw)) * f32::cos(radians(pitch));
+
                         camera_front = glm::normalize(&front);
                     }
                     _ => {}
