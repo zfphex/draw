@@ -5,6 +5,9 @@ use std::{f32::consts::PI, fs::File};
 use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::*;
 
+use shaders::*;
+mod shaders;
+
 extern crate nalgebra_glm as glm;
 
 pub fn open(path: impl AsRef<Path>) -> String {
@@ -58,15 +61,18 @@ pub unsafe fn program(
     program
 }
 
-fn buffer<T>(vertices: &[T]) -> &[u8] {
+// &vertices.align_to::<u8>().1
+#[inline]
+fn buffer(vertices: &[f32]) -> &[u8] {
     unsafe {
         core::slice::from_raw_parts(
             vertices.as_ptr() as *const u8,
-            vertices.len() * core::mem::size_of::<T>(),
+            vertices.len() * core::mem::size_of::<f32>(),
         )
     }
 }
 
+#[inline]
 fn radians(input: f32) -> f32 {
     input * PI / 180.0
 }
@@ -348,7 +354,17 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-            // camera/view transformation
+            draw_triangle(
+                &gl,
+                glm::vec2(0.5, -0.5),
+                glm::vec2(-0.5, -0.5),
+                glm::vec2(0.0, 0.5),
+                0.5,
+                0.5,
+                1.0,
+            );
+
+            //Camera/View transformation
             let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
             gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
 
@@ -369,6 +385,6 @@ fn main() {
             window.swap_buffers();
             glfw.poll_events();
         }
-        gl.delete_program(program);
+        // gl.delete_program(program);
     }
 }
