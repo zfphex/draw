@@ -354,15 +354,14 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-            draw_triangle(
-                &gl,
-                glm::vec2(0.5, -0.5),
-                glm::vec2(-0.5, -0.5),
-                glm::vec2(0.0, 0.5),
-                0.5,
-                0.5,
-                1.0,
-            );
+            // draw_triangle(
+            //     &gl,
+            //     glm::vec2(0.5, -0.5),
+            //     glm::vec2(-0.5, -0.5),
+            //     glm::vec2(0.0, 0.5),
+            //     color(0.5, 0.5, 1.0),
+            // );
+            draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
 
             //Camera/View transformation
             let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
