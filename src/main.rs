@@ -5,8 +5,8 @@ use std::{f32::consts::PI, fs::File};
 use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::*;
 
-use shaders::*;
-mod shaders;
+pub use shaders::*;
+pub mod shaders;
 
 extern crate nalgebra_glm as glm;
 
@@ -280,7 +280,30 @@ fn main() {
         let mut last_y: f32 = 600.0 / 2.0;
         let sensitivity: f32 = 0.1;
 
-        // let fov: f32 = 45.0;
+        let mut tb = TriangleBuffer::new(&gl);
+        let (r, g, b) = (1.0, 1.0, 1.0);
+
+        #[rustfmt::skip]
+        tb.extend(&[
+            0.5, -0.5, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+        ]);
+
+        #[rustfmt::skip]
+        tb.extend(&[
+            0.5 + 0.2, -0.5 + 0.2, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+        ]);
+
+        #[rustfmt::skip]
+        tb.extend(&[
+            0.5 + 0.4, -0.5 + 0.4, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+        ]);
+
+        #[rustfmt::skip]
+        tb.extend(&[
+            0.5 + 0.6, -0.5 + 0.6, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+        ]);
+
+        tb.upload(&gl);
 
         while !window.should_close() {
             let current_frame = glfw.get_time() as f32;
@@ -354,6 +377,8 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
+            tb.draw(&gl);
+
             // draw_triangle(
             //     &gl,
             //     glm::vec2(0.5, -0.5),
@@ -361,7 +386,7 @@ fn main() {
             //     glm::vec2(0.0, 0.5),
             //     color(0.5, 0.5, 1.0),
             // );
-            draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
+            // draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
 
             //Camera/View transformation
             let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);

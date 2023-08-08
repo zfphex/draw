@@ -94,6 +94,88 @@ pub const RECTANGLE_F: &str = r#"
         }
     "#;
 
+pub struct TriangleBuffer {
+    pub buffer: NativeBuffer,
+    pub shader: NativeProgram,
+    pub data: Vec<f32>,
+}
+
+impl TriangleBuffer {
+    pub fn new(gl: &Context) -> Self {
+        unsafe {
+            Self {
+                buffer: gl.create_buffer().unwrap(),
+                shader: shader(gl, TRIANGLE_V, TRIANGLE_F),
+                data: Vec::new(),
+            }
+        }
+    }
+    pub fn bind(&mut self, gl: &Context) {
+        unsafe { gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.buffer)) };
+    }
+    pub fn upload(&mut self, gl: &Context) {
+        self.bind(gl);
+        unsafe {
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&self.data), glow::STATIC_DRAW);
+        }
+    }
+    pub fn extend(&mut self, vertex: &[f32]) {
+        self.data.extend(vertex);
+    }
+    pub fn clear(&mut self, gl: &Context) {
+        self.data.clear();
+        self.bind(gl);
+        unsafe {
+            gl.buffer_data_u8_slice(
+                glow::ARRAY_BUFFER,
+                buffer(&self.data),
+                glow::MAP_INVALIDATE_BUFFER_BIT,
+            );
+        }
+        self.upload(gl);
+    }
+    pub fn draw(&self, gl: &Context) {
+        unsafe {
+            gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
+            gl.enable_vertex_attrib_array(0);
+
+            gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
+            gl.enable_vertex_attrib_array(1);
+
+            gl.use_program(Some(self.shader));
+            gl.draw_arrays(glow::TRIANGLES, 0, 3);
+        }
+    }
+}
+
+pub unsafe fn test(gl: &Context) {
+    let mut tb = TriangleBuffer::new(gl);
+    let (r, g, b) = (1.0, 1.0, 1.0);
+    #[rustfmt::skip]
+    tb.extend(&[
+        0.5, -0.5, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+    ]);
+
+    #[rustfmt::skip]
+    tb.extend(&[
+        0.5 + 0.2, -0.5 + 0.2, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+    ]);
+
+    #[rustfmt::skip]
+    tb.extend(&[
+        0.5 + 0.4, -0.5 + 0.4, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+    ]);
+
+    #[rustfmt::skip]
+    tb.extend(&[
+        0.5 + 0.6, -0.5 + 0.6, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
+    ]);
+
+    tb.upload(gl);
+
+    tb.draw(gl);
+}
+
 pub unsafe fn draw_triangle(
     gl: &Context,
     v1: glm::Vec2,
