@@ -49,7 +49,6 @@ pub fn color(r: f32, g: f32, b: f32) -> Color {
 pub const TRIANGLE_V: &str = r#"
         #version 330 core
         layout (location = 0) in vec3 pos;
-        // in vec3 pos;
         layout (location = 1) in vec3 color;
 
         out vec3 input_color;
@@ -73,7 +72,6 @@ pub const TRIANGLE_F: &str = r#"
 pub const RECTANGLE_V: &str = r#"
         #version 330 core
         layout (location = 0) in vec3 pos;
-        // in vec3 pos;
         layout (location = 1) in vec3 color;
 
         out vec3 input_color;
@@ -176,36 +174,6 @@ pub unsafe fn test(gl: &Context) {
     tb.draw(gl);
 }
 
-pub unsafe fn draw_triangle(
-    gl: &Context,
-    v1: glm::Vec2,
-    v2: glm::Vec2,
-    v3: glm::Vec2,
-    color: Color,
-) {
-    let program = shader(gl, TRIANGLE_V, TRIANGLE_F);
-    gl.use_program(Some(program));
-
-    #[rustfmt::skip]
-    let vertices = [
-        v1.x, v1.y, 0.0, color.r, color.g, color.b,
-        v2.x, v2.y, 0.0, color.r, color.g, color.b,
-        v3.x, v3.y, 0.0, color.r, color.g, color.b
-    ];
-
-    let vbo = gl.create_buffer().unwrap();
-    gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-    gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&vertices), glow::STATIC_DRAW);
-
-    gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
-    gl.enable_vertex_attrib_array(0);
-
-    gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
-    gl.enable_vertex_attrib_array(1);
-
-    gl.draw_arrays(glow::TRIANGLES, 0, 3);
-}
-
 pub unsafe fn draw_rectangle(gl: &Context, x: f32, y: f32, w: f32, h: f32, color: Color) {
     let program = shader(gl, RECTANGLE_V, RECTANGLE_F);
     gl.use_program(Some(program));
@@ -241,4 +209,103 @@ pub unsafe fn draw_rectangle(gl: &Context, x: f32, y: f32, w: f32, h: f32, color
 
     gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
     gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
+}
+
+pub unsafe fn draw_rectangle_ortho(gl: &Context, width: f32, height: f32) {
+    const V: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec2 position;
+    uniform mat4 projection;
+
+    void main()
+    {
+        gl_Position = projection * vec4(position, 0.0, 1.0);
+    }
+"#;
+
+    const F: &str = r#"
+    #version 330 core
+
+    void main() {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+"#;
+
+    let program = shader(gl, V, F);
+    gl.use_program(Some(program));
+
+    let projection_location = gl.get_uniform_location(program, "projection").unwrap();
+    let projection = glm::ortho(0.0, width, height, 0.0, -1.0, 1.0);
+
+    let vertices = [
+        100.0, 100.0, // Top-left
+        300.0, 100.0, // Top-right
+        300.0, 300.0, // Bottom-right
+        100.0, 300.0, // Bottom-left
+    ];
+    let indices = [0, 1, 2, 2, 3, 0];
+
+    let vbo = gl.create_buffer().unwrap();
+    gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+    gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&vertices), glow::STATIC_DRAW);
+
+    let stride = (2 * size_of::<f32>()) as i32;
+    gl.vertex_attrib_pointer_f32(0, 2, glow::FLOAT, false, stride, 0);
+    gl.enable_vertex_attrib_array(0);
+
+    let ebo = gl.create_buffer().unwrap();
+    gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+    gl.buffer_data_u8_slice(
+        glow::ELEMENT_ARRAY_BUFFER,
+        indices.align_to::<u8>().1,
+        glow::STATIC_DRAW,
+    );
+
+    gl.uniform_matrix_4_f32_slice(Some(&projection_location), false, projection.as_slice());
+
+    check_error(gl);
+}
+
+const LINE_V: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec2 position;
+    layout (location = 1) in vec3 color;
+
+    out vec3 input_color;
+
+    void main()
+    {
+        gl_Position = vec4(position, 0.0, 1.0);
+        input_color = color;
+    }
+"#;
+
+const LINE_F: &str = r#"
+    #version 330 core
+    out vec4 color;
+    in vec4 input_color;
+
+    void main() {
+        color = input_color;
+    }
+"#;
+
+pub unsafe fn draw_line(gl: &Context, x1: f32, y1: f32, x2: f32, y2: f32, color: Color) {
+    let program = shader(gl, LINE_V, LINE_F);
+    gl.use_program(Some(program));
+
+    let vbo = gl.create_buffer().unwrap();
+    gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+
+    gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, buffer(&[x1, y1]), glow::STATIC_DRAW);
+
+    check_error(gl);
+
+    gl.vertex_attrib_pointer_f32(0, 2, glow::FLOAT, false, 2 * 3, 0);
+    gl.enable_vertex_attrib_array(0);
+
+    // gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 3 * 3, 2 * 3);
+    // gl.enable_vertex_attrib_array(1);
+
+    gl.draw_arrays(glow::LINES, 0, 2);
 }

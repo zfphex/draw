@@ -77,6 +77,21 @@ fn radians(input: f32) -> f32 {
     input * PI / 180.0
 }
 
+pub fn check_error(gl: &Context) {
+    let error = unsafe { gl.get_error() };
+    match error {
+        glow::INVALID_ENUM => panic!("INVALID_ENUM"),
+        glow::INVALID_VALUE => panic!("INVALID_VALUE"),
+        glow::INVALID_OPERATION => panic!("INVALID_OPERATION"),
+        glow::STACK_OVERFLOW => panic!("STACK_OVERFLOW"),
+        glow::STACK_UNDERFLOW => panic!("STACK_UNDERFLOW"),
+        glow::OUT_OF_MEMORY => panic!("OUT_OF_MEMORY"),
+        glow::INVALID_FRAMEBUFFER_OPERATION => panic!("INVALID_FRAMEBUFFER_OPERATION"),
+        0 => {}
+        _ => unreachable!(),
+    }
+}
+
 fn main() {
     unsafe {
         use glfw::Context;
@@ -280,30 +295,33 @@ fn main() {
         let mut last_y: f32 = 600.0 / 2.0;
         let sensitivity: f32 = 0.1;
 
-        let mut tb = TriangleBuffer::new(&gl);
-        let (r, g, b) = (1.0, 1.0, 1.0);
+        // let mut tb = TriangleBuffer::new(&gl);
+        // let (r, g, b) = (1.0, 1.0, 1.0);
 
-        #[rustfmt::skip]
-        tb.extend(&[
-            0.5, -0.5, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
-        ]);
+        // for x in 1..10 {
+        //     tb.extend(&[
+        //         0.5 + 0.1 * x as f32,
+        //         -0.5 + 0.1 * x as f32,
+        //         0.0,
+        //         r,
+        //         g,
+        //         b,
+        //         -0.5,
+        //         -0.5,
+        //         0.0,
+        //         r,
+        //         g,
+        //         b,
+        //         0.0,
+        //         0.5,
+        //         0.0,
+        //         r,
+        //         g,
+        //         b,
+        //     ]);
+        // }
 
-        #[rustfmt::skip]
-        tb.extend(&[
-            0.5 + 0.2, -0.5 + 0.2, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
-        ]);
-
-        #[rustfmt::skip]
-        tb.extend(&[
-            0.5 + 0.4, -0.5 + 0.4, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
-        ]);
-
-        #[rustfmt::skip]
-        tb.extend(&[
-            0.5 + 0.6, -0.5 + 0.6, 0.0, r, g, b, -0.5, -0.5, 0.0, r, g, b, 0.0, 0.5, 0.0, r, g, b,
-        ]);
-
-        tb.upload(&gl);
+        // tb.upload(&gl);
 
         while !window.should_close() {
             let current_frame = glfw.get_time() as f32;
@@ -377,38 +395,40 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-            tb.draw(&gl);
+            // tb.draw(&gl);
 
-            // draw_triangle(
-            //     &gl,
-            //     glm::vec2(0.5, -0.5),
-            //     glm::vec2(-0.5, -0.5),
-            //     glm::vec2(0.0, 0.5),
-            //     color(0.5, 0.5, 1.0),
-            // );
             // draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
 
-            //Camera/View transformation
-            let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
-            gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
+            // draw_rectangle(&gl, 0.0, 0.0, 0.1, 0.1, color(0.2, 0.5, 0.5));
 
-            for (i, cube) in cube_positions.iter().enumerate() {
-                // calculate the model matrix for each object and pass it to shader before drawing
-                let mut model = glm::translate(&glm::identity(), &cube);
-                model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
-                model = glm::rotate(
-                    &model,
-                    (i as f32 + 1.0) * glfw.get_time() as f32 / 4.0,
-                    &glm::vec3(0.5, 1.0, 0.0),
-                );
-                gl.uniform_matrix_4_f32_slice(Some(&model_location), false, model.as_slice());
+            // draw_rectangle_ortho(&gl, width, height);
 
-                gl.draw_arrays(glow::TRIANGLES, 0, 36);
+            draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
+
+            'cubes: {
+                break 'cubes;
+
+                //Camera/View transformation
+                let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
+                gl.uniform_matrix_4_f32_slice(Some(&view_location), false, view.as_slice());
+
+                for (i, cube) in cube_positions.iter().enumerate() {
+                    // calculate the model matrix for each object and pass it to shader before drawing
+                    let mut model = glm::translate(&glm::identity(), &cube);
+                    model = glm::rotate(&model, 20.0 * i as f32, &glm::vec3(1.0, 0.3, 0.5));
+                    model = glm::rotate(
+                        &model,
+                        (i as f32 + 1.0) * glfw.get_time() as f32 / 4.0,
+                        &glm::vec3(0.5, 1.0, 0.0),
+                    );
+                    gl.uniform_matrix_4_f32_slice(Some(&model_location), false, model.as_slice());
+
+                    gl.draw_arrays(glow::TRIANGLES, 0, 36);
+                }
             }
 
             window.swap_buffers();
             glfw.poll_events();
         }
-        // gl.delete_program(program);
     }
 }
