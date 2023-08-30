@@ -668,6 +668,8 @@ dependencies = [
  "glow",
  "image",
  "nalgebra-glm",
+ "raw-window-handle",
+ "winapi",
 ]
 
 [[package]]

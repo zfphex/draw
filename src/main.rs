@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::io::Read;
 use std::path::Path;
 use std::{f32::consts::PI, fs::File};
@@ -6,6 +7,7 @@ use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::*;
 
 pub use shaders::*;
+pub mod dx11;
 pub mod shaders;
 
 extern crate nalgebra_glm as glm;
@@ -93,6 +95,8 @@ pub fn check_error(gl: &Context) {
 }
 
 fn main() {
+    return dx11::dx11();
+
     unsafe {
         use glfw::Context;
 
@@ -121,7 +125,7 @@ fn main() {
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
         gl.enable(glow::DEPTH_TEST);
 
-        let program = program(&gl, "src/vertex.glsl", "src/fragment.glsl");
+        let program = program(&gl, "shaders/vertex.glsl", "shaders/fragment.glsl");
 
         #[rustfmt::skip]
         let vertices: &[f32] = &[

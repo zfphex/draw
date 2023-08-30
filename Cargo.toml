@@ -8,4 +8,10 @@ glfw = "0.52.0"
 glow = "0.12.1"
 image = "0.24.6"
 nalgebra-glm = "0.18.0"
-
+raw-window-handle = "0.5.2"
+winapi = { version = "0.3", features = [
+    "winuser",
+    "d3d11",
+    "winerror",
+    "dxgi1_2",
+] }
