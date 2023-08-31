@@ -14,4 +14,5 @@ winapi = { version = "0.3", features = [
     "d3d11",
     "winerror",
     "dxgi1_2",
+    "d3dcompiler",
 ] }
