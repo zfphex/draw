@@ -1,5 +1,8 @@
 use std::{
+    ffi::CString,
     mem::transmute,
+    panic::Location,
+    path::Path,
     ptr::{null, null_mut},
 };
 
@@ -21,6 +24,12 @@ pub trait WinResult {
 impl WinResult for HRESULT {
     #[track_caller]
     fn unwrap(self) {
+        if self == S_FALSE {
+            let c = Location::caller();
+            return println!(
+                "{}:{}:{}: Successful but nonstandard completion (the precise meaning depends on context).", c.file(), c.line(), c.column(),
+            );
+        }
         if self != S_OK {
             let result: u32 = unsafe { transmute(self) };
             match result {
@@ -84,51 +93,69 @@ impl WinResult for HRESULT {
     }
 }
 
-fn compile_shader(
-    shader: &str,
-    // src_data: LPCVOID,
-    // src_data_size: SIZE_T,
-    target: &str,
-    compile_constants: u32,
-    complie_effects: u32,
-) -> *mut *mut ID3DBlob {
-    let bytes = shader.as_bytes();
-
-    let mut shader: *mut *mut ID3DBlob = std::ptr::null_mut();
-    let mut errors: *mut *mut ID3DBlob = std::ptr::null_mut();
-
-    let result = unsafe {
-        D3DCompile(
-            bytes.as_ptr() as *const winapi::ctypes::c_void,
-            bytes.len(),
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            transmute("VSMain".as_ptr()),
-            transmute("vs_5_0".as_ptr()),
-            compile_constants,
-            complie_effects,
-            shader,
-            errors,
-        )
-    };
-
-    let errors: u64 = unsafe { transmute(errors) };
-    let errors: HRESULT = errors as HRESULT;
-
-    errors.unwrap();
-    result.unwrap();
-
-    if !shader.is_null() {
-        shader
-    } else {
-        panic!();
-    }
+pub enum Target {
+    Vertex,
+    Pixel,
+    Fragment,
+    Compute,
+    Domain,
+    Geometry,
+    Hull,
 }
 
-fn shader() {
-    let target = "vs_5_0";
-    let shader = compile_shader(V, target, 0, 0);
+fn compile_shader(src_data: &str, entry_point: &str, target: Target) -> Result<Vec<u8>, String> {
+    unsafe {
+        let mut code: *mut ID3DBlob = null_mut();
+        let mut error_msgs: *mut ID3DBlob = null_mut();
+        let target = match target {
+            Target::Vertex => "vs_5_0",
+            Target::Pixel | Target::Fragment => "ps_5_0",
+            Target::Compute => "cs_5_0",
+            Target::Domain => "ds_5_0",
+            Target::Geometry => "gs_5_0",
+            Target::Hull => "hs_5_0",
+        };
+        let entry_point = CString::new(entry_point).unwrap();
+        let target = CString::new(target).unwrap();
+
+        let hr = D3DCompile(
+            src_data.as_bytes().as_ptr() as LPCVOID,
+            src_data.as_bytes().len(),
+            null(),
+            null(),
+            null_mut(),
+            entry_point.as_ptr(),
+            target.as_ptr(),
+            0,
+            0,
+            &mut code,
+            &mut error_msgs,
+        );
+
+        if hr < 0 {
+            if !error_msgs.is_null() {
+                let error_msgs = error_msgs.as_ref().unwrap();
+
+                let error_msgs = std::str::from_utf8(std::slice::from_raw_parts(
+                    error_msgs.GetBufferPointer() as *const u8,
+                    error_msgs.GetBufferSize(),
+                ))
+                .unwrap();
+
+                Err(error_msgs.to_string())
+            } else {
+                Err(format!("hresult: {}", hr))
+            }
+        } else {
+            let code = code.as_ref().unwrap();
+
+            Ok(std::slice::from_raw_parts(
+                code.GetBufferPointer() as *const u8,
+                code.GetBufferSize(),
+            )
+            .to_vec())
+        }
+    }
 }
 
 //https://learn.microsoft.com/en-us/windows/win32/direct3d11/how-to--compile-a-shader
@@ -139,7 +166,7 @@ float4 main(float2 pos : Position) : SV_Position
 }
 "#;
 
-const F: &str = r#"
+const P: &str = r#"
 float4 main() : SV_Target
 {
     return float4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -204,7 +231,7 @@ pub fn dx11() {
 
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         let (mut window, events) = glfw
-            .create_window(300, 300, "Hello this is window", glfw::WindowMode::Windowed)
+            .create_window(800, 600, "DX11", glfw::WindowMode::Windowed)
             .expect("Failed to create GLFW window.");
         let handle = window.raw_window_handle();
         let win32 = match handle {
@@ -297,19 +324,28 @@ pub fn dx11() {
 
         const VERTICIES: [f32; 6] = [0.0, 0.5, 0.5, -0.5, -0.5, -0.5];
 
-        // (*device).CreateVertexShader(
-        //     pShaderBytecode,
-        //     BytecodeLength,
-        //     pClassLinkage,
-        //     ppVertexShader,
-        // );
+        let v = compile_shader(V, "main", Target::Vertex).unwrap();
+        let p = compile_shader(P, "main", Target::Pixel).unwrap();
 
-        // (*device).CreatePixelShader(
-        //     pShaderBytecode,
-        //     BytecodeLength,
-        //     pClassLinkage,
-        //     ppPixelShader,
-        // );
+        let vertex_shader: *mut *mut ID3D11VertexShader = null_mut();
+        (*device)
+            .CreateVertexShader(
+                v.as_ptr() as *const winapi::ctypes::c_void,
+                v.len(),
+                null_mut(),
+                vertex_shader,
+            )
+            .unwrap();
+
+        let pixel_shader: *mut *mut ID3D11PixelShader = null_mut();
+        (*device)
+            .CreatePixelShader(
+                p.as_ptr() as *const winapi::ctypes::c_void,
+                p.len(),
+                null_mut(),
+                pixel_shader,
+            )
+            .unwrap();
 
         ctx.OMSetRenderTargets(1, transmute(&mut render_target_view), null_mut());
 
