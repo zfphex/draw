@@ -24,6 +24,39 @@ impl Result for HRESULT {
     }
 }
 
+//https://learn.microsoft.com/en-us/windows/win32/direct3d11/how-to--compile-a-shader
+const V: &str = r#"VertexToPixelShader VS_main(uint vertex_id: SV_VertexID)
+{
+    VertexToPixelShader output;
+
+    switch (vertex_id) {
+    case 0: output.position_clip = float4(-1,  1, 0, 1); break; // top-left
+    case 1: output.position_clip = float4( 1,  1, 0, 1); break; // top-right
+    case 2: output.position_clip = float4(-1, -1, 0, 1); break; // bottom-left
+    case 3: output.position_clip = float4( 1, -1, 0, 1); break; // bottom-right
+    }
+
+    output.position_clip.xy *= 0.5f; // change the size of the quad a bit
+
+    return output;
+}"#;
+
+const F: &str = r#"VertexToPixelShader VS_main(uint vertex_id: SV_VertexID)
+{
+    VertexToPixelShader output;
+
+    switch (vertex_id) {
+    case 0: output.position_clip = float4(-1,  1, 0, 1); break; // top-left
+    case 1: output.position_clip = float4( 1,  1, 0, 1); break; // top-right
+    case 2: output.position_clip = float4(-1, -1, 0, 1); break; // bottom-left
+    case 3: output.position_clip = float4( 1, -1, 0, 1); break; // bottom-right
+    }
+
+    output.position_clip.xy *= 0.5f; // change the size of the quad a bit
+
+    return output;
+}"#;
+
 // pub fn create_texture<'a>(
 //     device: &GraphicsDevice,
 //     texture_desc: D3D11_TEXTURE2D_DESC,
@@ -64,11 +97,32 @@ impl Result for HRESULT {
 
 //https://github.com/jendrikillner/RustMatch3/blob/master/graphics_device/src/graphics_device_lib.rs#L201
 //https://www.jendrikillner.com/post/rust-game-part-6/
+//https://antongerdelan.net/opengl/d3d11.html
 pub fn dx11() {
     unsafe {
         let adapter: *mut IDXGIAdapter = null_mut();
         let mut device: *mut ID3D11Device = null_mut();
         let mut immediate_context: *mut ID3D11DeviceContext = null_mut();
+        let mut dxgi_device: *mut IDXGIDevice = null_mut();
+        let mut dxgi_adapter: *mut IDXGIAdapter = null_mut();
+        let mut dxgi_factory: *mut IDXGIFactory1 = null_mut();
+        let mut dxgi_factory_2: *mut IDXGIFactory2 = null_mut();
+
+        let mut framebuffer: *mut ID3D11Texture2D = null_mut();
+        let mut swapchain: *mut IDXGISwapChain1 = null_mut();
+        let mut render_target_view: *mut ID3D11RenderTargetView = null_mut();
+
+        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+        let (mut window, events) = glfw
+            .create_window(300, 300, "Hello this is window", glfw::WindowMode::Windowed)
+            .expect("Failed to create GLFW window.");
+        let handle = window.raw_window_handle();
+        let win32 = match handle {
+            RawWindowHandle::Win32(handle) => handle,
+            _ => unreachable!(),
+        };
+        window.set_key_polling(true);
+        window.make_current();
 
         D3D11CreateDevice(
             adapter,
@@ -84,8 +138,6 @@ pub fn dx11() {
         )
         .unwrap();
 
-        let mut dxgi_device: *mut IDXGIDevice = null_mut();
-
         (*device)
             .QueryInterface(
                 &IDXGIDevice::uuidof(),
@@ -93,10 +145,8 @@ pub fn dx11() {
             )
             .unwrap();
 
-        let mut dxgi_adapter: *mut IDXGIAdapter = null_mut();
         (*dxgi_device).GetAdapter(&mut dxgi_adapter).unwrap();
 
-        let mut dxgi_factory: *mut IDXGIFactory1 = null_mut();
         (*dxgi_adapter)
             .GetParent(
                 &IDXGIFactory1::uuidof(),
@@ -104,31 +154,12 @@ pub fn dx11() {
             )
             .unwrap();
 
-        let mut dxgi_factory_2: *mut IDXGIFactory2 = null_mut();
-
         (*dxgi_factory)
             .QueryInterface(
                 &IDXGIFactory2::uuidof(),
                 std::mem::transmute(&mut dxgi_factory_2),
             )
             .unwrap();
-
-        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-
-        let (mut window, events) = glfw
-            .create_window(300, 300, "Hello this is window", glfw::WindowMode::Windowed)
-            .expect("Failed to create GLFW window.");
-
-        window.set_key_polling(true);
-        window.make_current();
-
-        let handle = window.raw_window_handle();
-        let win32 = match handle {
-            RawWindowHandle::Win32(handle) => handle,
-            _ => unreachable!(),
-        };
-
-        let mut swapchain: *mut IDXGISwapChain1 = null_mut();
 
         (*dxgi_factory_2)
             .CreateSwapChainForHwnd(
@@ -155,15 +186,10 @@ pub fn dx11() {
                 &mut swapchain,
             )
             .unwrap();
-        assert!(!swapchain.is_null());
-
-        let mut framebuffer: *mut ID3D11Texture2D = null_mut();
 
         (*swapchain)
             .GetBuffer(0, &ID3D11Texture2D::uuidof(), transmute(&mut framebuffer))
             .unwrap();
-
-        let mut render_target_view: *mut ID3D11RenderTargetView = null_mut();
 
         (*device).CreateRenderTargetView(
             transmute(framebuffer),
@@ -171,7 +197,26 @@ pub fn dx11() {
             transmute(&mut render_target_view),
         );
 
+        //TODO: Use deferred context.
+        let mut dctx: *mut ID3D11DeviceContext = std::ptr::null_mut();
+        let error = (*device).CreateDeferredContext(0, &mut dctx);
+
         let ctx = immediate_context.as_mut().unwrap();
+        let swapchain = swapchain.as_mut().unwrap();
+
+        // (*device).CreateVertexShader(
+        //     pShaderBytecode,
+        //     BytecodeLength,
+        //     pClassLinkage,
+        //     ppVertexShader,
+        // );
+
+        // (*device).CreatePixelShader(
+        //     pShaderBytecode,
+        //     BytecodeLength,
+        //     pClassLinkage,
+        //     ppPixelShader,
+        // );
 
         while !window.should_close() {
             glfw.poll_events();
@@ -179,7 +224,7 @@ pub fn dx11() {
             ctx.ClearRenderTargetView(render_target_view, &[0.5, 0.6, 0.6, 1.0]);
             ctx.OMSetRenderTargets(1, transmute(&mut render_target_view), null_mut());
 
-            (*swapchain).Present(1, 0);
+            swapchain.Present(1, 0);
 
             for (_, event) in glfw::flush_messages(&events) {
                 //TODO
