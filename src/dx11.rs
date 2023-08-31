@@ -215,7 +215,6 @@ float4 main() : SV_Target
 //https://www.jendrikillner.com/post/rust-game-part-6/
 //https://antongerdelan.net/opengl/d3d11.html
 pub fn dx11() {
-    shader();
     unsafe {
         let adapter: *mut IDXGIAdapter = null_mut();
         let mut device: *mut ID3D11Device = null_mut();
