@@ -1,3 +1,5 @@
+use std::{mem::transmute, ptr::null_mut};
+
 use glfw::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use winapi::{
@@ -27,8 +29,8 @@ impl Result for HRESULT {
 //     texture_desc: D3D11_TEXTURE2D_DESC,
 //     subresources_data: Vec<D3D11_SUBRESOURCE_DATA>,
 // ) -> Result<Texture<'a>, ()> {
-//     let mut texture: *mut winapi::um::d3d11::ID3D11Texture2D = std::ptr::null_mut();
-//     let mut texture_view: *mut winapi::um::d3d11::ID3D11ShaderResourceView = std::ptr::null_mut();
+//     let mut texture: *mut winapi::um::d3d11::ID3D11Texture2D = null_mut();
+//     let mut texture_view: *mut winapi::um::d3d11::ID3D11ShaderResourceView = null_mut();
 
 //     unsafe {
 //         let hr =
@@ -43,7 +45,7 @@ impl Result for HRESULT {
 //         // create a resource view
 //         let hr = device.native.CreateShaderResourceView(
 //             texture as *mut winapi::um::d3d11::ID3D11Resource,
-//             std::ptr::null_mut(),
+//             null_mut(),
 //             &mut texture_view,
 //         );
 
@@ -60,45 +62,41 @@ impl Result for HRESULT {
 //     })
 // }
 
+//https://github.com/jendrikillner/RustMatch3/blob/master/graphics_device/src/graphics_device_lib.rs#L201
+//https://www.jendrikillner.com/post/rust-game-part-6/
 pub fn dx11() {
     unsafe {
-        // use default adapter
-        let adapter: *mut IDXGIAdapter = std::ptr::null_mut();
-        let flags: UINT = 0;
-
-        let feature_levels: D3D_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_0;
-        let num_feature_levels: UINT = 1;
-
-        let mut d3d11_device: *mut ID3D11Device = std::ptr::null_mut();
-        let mut d3d11_immediate_context: *mut ID3D11DeviceContext = std::ptr::null_mut();
+        let adapter: *mut IDXGIAdapter = null_mut();
+        let mut device: *mut ID3D11Device = null_mut();
+        let mut immediate_context: *mut ID3D11DeviceContext = null_mut();
 
         D3D11CreateDevice(
             adapter,
             D3D_DRIVER_TYPE_HARDWARE,
-            std::ptr::null_mut(),
-            flags,
-            &feature_levels,
-            num_feature_levels,
+            null_mut(),
+            D3D11_CREATE_DEVICE_DEBUG | D3D11_CREATE_DEVICE_DISABLE_GPU_TIMEOUT,
+            &D3D_FEATURE_LEVEL_11_1,
+            1,
             D3D11_SDK_VERSION,
-            &mut d3d11_device,
-            std::ptr::null_mut(),
-            &mut d3d11_immediate_context,
+            &mut device,
+            null_mut(),
+            &mut immediate_context,
         )
         .unwrap();
 
-        let mut dxgi_device: *mut IDXGIDevice = std::ptr::null_mut();
+        let mut dxgi_device: *mut IDXGIDevice = null_mut();
 
-        (*d3d11_device)
+        (*device)
             .QueryInterface(
                 &IDXGIDevice::uuidof(),
                 std::mem::transmute(&mut dxgi_device),
             )
             .unwrap();
 
-        let mut dxgi_adapter: *mut IDXGIAdapter = std::ptr::null_mut();
+        let mut dxgi_adapter: *mut IDXGIAdapter = null_mut();
         (*dxgi_device).GetAdapter(&mut dxgi_adapter).unwrap();
 
-        let mut dxgi_factory: *mut IDXGIFactory1 = std::ptr::null_mut();
+        let mut dxgi_factory: *mut IDXGIFactory1 = null_mut();
         (*dxgi_adapter)
             .GetParent(
                 &IDXGIFactory1::uuidof(),
@@ -106,7 +104,7 @@ pub fn dx11() {
             )
             .unwrap();
 
-        let mut dxgi_factory_2: *mut IDXGIFactory2 = std::ptr::null_mut();
+        let mut dxgi_factory_2: *mut IDXGIFactory2 = null_mut();
 
         (*dxgi_factory)
             .QueryInterface(
@@ -130,11 +128,11 @@ pub fn dx11() {
             _ => unreachable!(),
         };
 
-        let mut swapchain: *mut IDXGISwapChain1 = std::ptr::null_mut();
+        let mut swapchain: *mut IDXGISwapChain1 = null_mut();
 
         (*dxgi_factory_2)
             .CreateSwapChainForHwnd(
-                d3d11_device as *mut winapi::um::unknwnbase::IUnknown,
+                device as *mut winapi::um::unknwnbase::IUnknown,
                 std::mem::transmute(win32.hwnd),
                 &DXGI_SWAP_CHAIN_DESC1 {
                     Width: 0,
@@ -152,33 +150,34 @@ pub fn dx11() {
                     SwapEffect: DXGI_SWAP_EFFECT_DISCARD,
                     Stereo: 0,
                 },
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
+                null_mut(),
+                null_mut(),
                 &mut swapchain,
             )
             .unwrap();
         assert!(!swapchain.is_null());
 
-        // let mut rtv: *mut ID3D11RenderTargetView = std::ptr::null_mut();
-        let mut back_buffer: *mut ID3D11Texture2D = std::ptr::null_mut();
+        let mut framebuffer: *mut ID3D11Texture2D = null_mut();
 
         (*swapchain)
-            .GetBuffer(
-                0,
-                &ID3D11Texture2D::uuidof(),
-                std::mem::transmute(&mut back_buffer),
-            )
+            .GetBuffer(0, &ID3D11Texture2D::uuidof(), transmute(&mut framebuffer))
             .unwrap();
 
-        let mut texture_view: *mut winapi::um::d3d11::ID3D11ShaderResourceView =
-            std::ptr::null_mut();
+        let mut render_target_view: *mut ID3D11RenderTargetView = null_mut();
 
-        let ctx = d3d11_immediate_context.as_mut().unwrap();
+        (*device).CreateRenderTargetView(
+            transmute(framebuffer),
+            null_mut(),
+            transmute(&mut render_target_view),
+        );
+
+        let ctx = immediate_context.as_mut().unwrap();
 
         while !window.should_close() {
             glfw.poll_events();
 
-            ctx.ClearRenderTargetView(todo!(), &[0.0, 0.0, 0.0, 1.0]);
+            ctx.ClearRenderTargetView(render_target_view, &[0.5, 0.6, 0.6, 1.0]);
+            ctx.OMSetRenderTargets(1, transmute(&mut render_target_view), null_mut());
 
             (*swapchain).Present(1, 0);
 
