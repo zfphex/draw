@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["vk2", "dx11", "gl"]
+members = ["vk2", "dx11", "gl", "gl2"]
 
 [profile.release]
 # strip = true

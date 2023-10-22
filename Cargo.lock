@@ -216,6 +216,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gl2"
+version = "0.1.0"
+dependencies = [
+ "glfw",
+ "glow",
+ "mini 0.1.0",
+]
+
+[[package]]
 name = "glfw"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,6 +359,10 @@ checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "mini"
+version = "0.1.0"
 
 [[package]]
 name = "mini"
@@ -628,7 +641,7 @@ name = "vk2"
 version = "0.1.0"
 dependencies = [
  "ash",
- "mini",
+ "mini 0.1.0 (git+https://github.com/zX3no/mini)",
  "win_window",
 ]
 

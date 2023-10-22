@@ -1,0 +1,12 @@
+[package]
+name = "gl2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# win_window = { version = "0.1.0", path = "../../win_window" }
+glfw = "0.52.0"
+glow = "0.12.1"
+mini = { path="../../mini", version = "0.1.0", features = ["profile"] }

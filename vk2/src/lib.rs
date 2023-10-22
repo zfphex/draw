@@ -21,12 +21,7 @@ pub unsafe fn create_surface(
     height: u32,
 ) -> (Window, vk::SurfaceKHR) {
     profile!();
-    let window = create_window(
-        "test window",
-        width as i32,
-        height as i32,
-        WS_VISIBLE | WS_OVERLAPPEDWINDOW,
-    );
+    let window = create_window("test window", width as i32, height as i32);
     let win32_surface_fn = khr::Win32Surface::new(&entry, &instance);
     let surface = win32_surface_fn
         .create_win32_surface(
