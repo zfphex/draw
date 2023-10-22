@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["vk2", "dx11", "og"]
+members = ["vk2", "dx11", "gl"]
 
 [profile.release]
-strip = true
-debug = true
+# strip = true
+# debug = true

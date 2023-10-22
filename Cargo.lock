@@ -206,6 +206,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gl"
+version = "0.1.0"
+dependencies = [
+ "glfw",
+ "glow",
+ "image",
+ "nalgebra-glm",
+]
+
+[[package]]
 name = "glfw"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -429,16 +439,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "915b1b472bc21c53464d6c8461c9d3af805ba1ef837e1cac254428f4a77177b1"
 dependencies = [
  "malloc_buf",
-]
-
-[[package]]
-name = "og"
-version = "0.1.0"
-dependencies = [
- "glfw",
- "glow",
- "image",
- "nalgebra-glm",
 ]
 
 [[package]]
