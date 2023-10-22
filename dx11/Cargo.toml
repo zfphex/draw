@@ -1,0 +1,19 @@
+[package]
+name = "dx11"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+raw-window-handle = "0.5.2"
+winapi = { version = "0.3", features = [
+    "winuser",
+    "d3d11",
+    "winerror",
+    "dxgi1_2",
+    "d3dcompiler",
+] }
+glfw = "0.52.0"
+
+

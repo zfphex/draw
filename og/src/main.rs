@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 #![allow(unused)]
 use std::io::Read;
 use std::path::Path;
@@ -7,7 +8,6 @@ use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::*;
 
 pub use shaders::*;
-pub mod dx11;
 pub mod shaders;
 
 extern crate nalgebra_glm as glm;
@@ -19,13 +19,7 @@ pub fn open(path: impl AsRef<Path>) -> String {
     buf
 }
 
-pub unsafe fn program(
-    gl: &Context,
-    vertex_path: impl AsRef<Path>,
-    fragment_path: impl AsRef<Path>,
-) -> NativeProgram {
-    let v_source = open(vertex_path);
-    let f_source = open(fragment_path);
+pub unsafe fn program(gl: &Context, vertex: &str, fragment: &str) -> NativeProgram {
     let program = gl.create_program().unwrap();
 
     //Vertex shader
@@ -34,7 +28,7 @@ pub unsafe fn program(
     if !error.is_empty() {
         panic!("{}", error);
     }
-    gl.shader_source(v, &v_source);
+    gl.shader_source(v, vertex);
     gl.compile_shader(v);
     gl.attach_shader(program, v);
 
@@ -44,7 +38,7 @@ pub unsafe fn program(
     if !error.is_empty() {
         panic!("{}", error);
     }
-    gl.shader_source(f, &f_source);
+    gl.shader_source(f, fragment);
     gl.compile_shader(f);
     gl.attach_shader(program, f);
 
@@ -94,9 +88,10 @@ pub fn check_error(gl: &Context) {
     }
 }
 
-fn main() {
-    return dx11::dx11();
+const VERTEX: &[u8] = include_bytes!("../shaders/vertex.glsl");
+const FRAGMENT: &[u8] = include_bytes!("../shaders/fragment.glsl");
 
+fn main() {
     unsafe {
         use glfw::Context;
 
@@ -125,7 +120,9 @@ fn main() {
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
         gl.enable(glow::DEPTH_TEST);
 
-        let program = program(&gl, "shaders/vertex.glsl", "shaders/fragment.glsl");
+        let frag = std::str::from_utf8_unchecked(FRAGMENT);
+        let vert = std::str::from_utf8_unchecked(VERTEX);
+        let program = program(&gl, vert, frag);
 
         #[rustfmt::skip]
         let vertices: &[f32] = &[
@@ -203,7 +200,8 @@ fn main() {
         gl.enable_vertex_attrib_array(1);
 
         //First texture
-        let im = image::open("resources/textures/container.jpg").unwrap();
+        let bytes = include_bytes!("../resources/textures/container.jpg");
+        let im = image::load_from_memory(bytes).unwrap();
         let texture1 = gl.create_texture().unwrap();
 
         gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
@@ -236,9 +234,8 @@ fn main() {
         gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
 
         //Second texture
-        let im = image::open("resources/textures/awesomeface.png")
-            .unwrap()
-            .flipv();
+        let bytes = include_bytes!("../resources/textures/awesomeface.png");
+        let im = image::load_from_memory(bytes).unwrap().flipv();
 
         gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
         gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
@@ -407,7 +404,7 @@ fn main() {
 
             // draw_rectangle_ortho(&gl, width, height);
 
-            draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
+            // draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
 
             'cubes: {
                 break 'cubes;

@@ -2,7 +2,6 @@ use std::{
     ffi::CString,
     mem::transmute,
     panic::Location,
-    path::Path,
     ptr::{null, null_mut},
 };
 
@@ -10,8 +9,7 @@ use glfw::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use winapi::{
     shared::{
-        dxgi::*, dxgi1_2::*, dxgiformat::*, dxgitype::*, minwindef::*, ntdef::HRESULT,
-        windef::HWND, winerror::*,
+        dxgi::*, dxgi1_2::*, dxgiformat::*, dxgitype::*, minwindef::*, ntdef::HRESULT, winerror::*,
     },
     um::{d3d11::*, d3dcommon::*, d3dcompiler::*},
     Interface,
@@ -214,7 +212,7 @@ float4 main() : SV_Target
 //https://github.com/jendrikillner/RustMatch3/blob/master/graphics_device/src/graphics_device_lib.rs#L201
 //https://www.jendrikillner.com/post/rust-game-part-6/
 //https://antongerdelan.net/opengl/d3d11.html
-pub fn dx11() {
+pub fn main() {
     unsafe {
         let adapter: *mut IDXGIAdapter = null_mut();
         let mut device: *mut ID3D11Device = null_mut();

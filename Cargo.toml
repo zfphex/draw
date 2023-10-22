@@ -1,18 +1,7 @@
-[package]
-name = "triangle"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = ["vk2", "dx11", "og"]
 
-[dependencies]
-glfw = "0.52.0"
-glow = "0.12.1"
-image = "0.24.6"
-nalgebra-glm = "0.18.0"
-raw-window-handle = "0.5.2"
-winapi = { version = "0.3", features = [
-    "winuser",
-    "d3d11",
-    "winerror",
-    "dxgi1_2",
-    "d3dcompiler",
-] }
+[profile.release]
+strip = true
+debug = true
