@@ -407,7 +407,7 @@ fn main() {
             // draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
 
             'cubes: {
-                break 'cubes;
+                // break 'cubes;
 
                 //Camera/View transformation
                 let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
