@@ -9,14 +9,16 @@ use win_window::*;
 
 fn main() {
     let vk = Vulkan::new(800, 600, true);
-    mini::print_profile!();
+    // mini::print_profile!();
 
     let mut frame_number = 0.0;
 
     loop {
         unsafe { vk2::draw(&vk, &mut frame_number) };
         match event() {
-            Event::Quit => break,
+            Event::Quit => {
+                break;
+            }
             _ => {}
         }
     }

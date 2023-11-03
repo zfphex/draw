@@ -465,6 +465,8 @@ impl Vulkan {
 impl Drop for Vulkan {
     fn drop(&mut self) {
         unsafe {
+            self.device.queue_wait_idle(self.queue).unwrap(); //Wait for everything to finish.
+            self.device.destroy_command_pool(self.command_pool, None); //Free's all command buffers.
             self.device.destroy_fence(self.render_fence, None);
             self.device.destroy_semaphore(self.render_semaphore, None);
             self.device.destroy_semaphore(self.present_semaphore, None);
@@ -474,7 +476,6 @@ impl Drop for Vulkan {
             }
 
             self.device.destroy_render_pass(self.render_pass, None);
-            self.device.destroy_command_pool(self.command_pool, None);
             self.swapchain_fn.destroy_swapchain(self.swapchain, None);
 
             for image in std::mem::take(&mut self.swapchain_image_views) {
