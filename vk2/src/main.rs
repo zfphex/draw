@@ -8,8 +8,8 @@ use vk2::Vulkan;
 use win_window::*;
 
 fn main() {
+    // mini::defer_results!();
     let vk = Vulkan::new(800, 600, true);
-    // mini::print_profile!();
 
     let mut frame_number = 0.0;
 

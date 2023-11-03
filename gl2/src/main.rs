@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 use glfw::*;
 use glow::HasContext;
-use mini::{defer_print, profile};
+use mini::{defer_results, profile};
 
 pub fn load_gl(window: &mut Window) -> glow::Context {
     profile!();
@@ -13,7 +13,7 @@ pub fn load_gl(window: &mut Window) -> glow::Context {
 }
 
 fn main() {
-    defer_print!();
+    defer_results!();
     profile!();
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let (mut window, events) = glfw
