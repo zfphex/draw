@@ -5,6 +5,7 @@ use glow::HasContext;
 use nalgebra_glm::{Vec2, Vec4};
 
 const GLYPH_METRICS_CAPACITY: usize = 128;
+const FONT_SIZE: u32 = 12;
 
 #[derive(Debug, Clone, Default)]
 pub struct Glyph {
@@ -32,7 +33,7 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
 
     let lib = Library::init().unwrap();
     let face = lib.new_memory_face2(font, 0).unwrap();
-    face.set_char_size(40 * 64, 0, 50, 0).unwrap();
+    face.set_pixel_sizes(FONT_SIZE, FONT_SIZE).unwrap();
 
     let texture = unsafe { gl.create_texture().unwrap() };
     let mut atlas: Atlas = Atlas {
@@ -129,6 +130,7 @@ pub fn draw_line(atlas: &Atlas, rd: &mut Renderer, text: &str, mut pos: Vec2, co
     let chars = text.as_bytes();
 
     for c in chars {
+        // eprint!("{} ", *c as u8 as char);
         let mut c = *c as usize;
 
         if c > GLYPH_METRICS_CAPACITY {
@@ -136,7 +138,6 @@ pub fn draw_line(atlas: &Atlas, rd: &mut Renderer, text: &str, mut pos: Vec2, co
         }
 
         let metric = &atlas.glyphs[c];
-
         let x2 = pos.x + metric.bl;
         let y2 = pos.y - metric.bt;
         let w = metric.bw;

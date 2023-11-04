@@ -84,7 +84,7 @@ pub fn create_basic_shader(gl: &Context) -> NativeProgram {
         create_program(
             &gl,
             include_str!("../shaders/simple.vert"),
-            include_str!("../shaders/simple.frag"),
+            include_str!("../shaders/text.frag"),
         )
     }
 }
@@ -110,7 +110,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(gl: &'static glow::Context) -> Self {
         unsafe {
-            gl.enable(glow::DEPTH_TEST);
+            // gl.enable(glow::DEPTH_TEST);
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
             gl.debug_message_callback(|source, ty, id, severity, msg| {
@@ -217,16 +217,16 @@ impl Renderer {
         self.triangle(p1, p2, p3, c1, c2, c3, uv1, uv2, uv3);
     }
 
-    pub fn texture(&mut self, p: Vec2, s: Vec2, uvp: Vec2, uvs: Vec2, c: Vec4) {
+    pub fn texture(&mut self, pos: Vec2, size: Vec2, uvp: Vec2, uvs: Vec2, color: Vec4) {
         self.quad(
-            p,
-            p + Vec2::new(s.x, 0.0),
-            p + Vec2::new(0.0, s.y),
-            p + s,
-            c,
-            c,
-            c,
-            c,
+            pos,
+            pos + Vec2::new(size.x, 0.0),
+            pos + Vec2::new(0.0, size.y),
+            pos + size,
+            color,
+            color,
+            color,
+            color,
             uvp,
             uvp + Vec2::new(uvs.x, 0.0),
             uvp + Vec2::new(0.0, uvs.y),
@@ -306,42 +306,45 @@ fn main() {
         let basic = create_basic_shader(gl);
         rd.use_shader(basic);
 
-        let font = create_program(
-            &gl,
-            include_str!("../shaders/simple.vert"),
-            include_str!("../shaders/text.frag"),
-        );
+        // let font = create_program(
+        //     &gl,
+        //     include_str!("../shaders/simple.vert"),
+        //     include_str!("../shaders/text.frag"),
+        // );
+        // rd.use_shader(font);
 
         let atlas = load_font(&rd, include_bytes!("../JetBrainsMono.ttf"));
-        rd.use_shader(font);
 
-        // draw_line(
-        //     &atlas,
-        //     &mut rd,
-        //     "hi there.",
-        //     Vec2::new(0.0, 0.0),
-        //     Vec4::new(0.2, 0.7, 0.6, 1.0),
-        // );
-
-        let p0 = Vec2::new(0.5, 0.5);
-        let p1 = Vec2::new(0.5, -0.5);
-        let p2 = Vec2::new(-0.5, 0.5);
-        let p3 = Vec2::new(-0.5, -0.5);
-        let color = Vec4::new(1.0, 0.5, 1.0, 1.0);
-        let uv0 = Vec2::new(0.0, 0.0);
-        let uv1 = Vec2::new(1.0, 0.0);
-        let uv2 = Vec2::new(1.0, 1.0);
-        let uv3 = Vec2::new(0.0, 1.0);
-        rd.quad(
-            p0, p1, p2, p3, color, color, color, color, uv0, uv1, uv2, uv3,
+        let text_position = Vec2::new(-2.0, 0.0);
+        //FIXME: Here the font is really big because it expect that I'm drawing to a viewport.
+        draw_line(
+            &atlas,
+            &mut rd,
+            "hi there.",
+            text_position,
+            Vec4::new(0.3, 0.7, 0.6, 1.0),
         );
 
+        // let color = Vec4::new(0.8, 0.8, 0.8, 1.0);
         // rd.texture(
-        //     Vec2::new(0.0, -1.0),
-        //     Vec2::new(atlas.width as f32, atlas.height as f32),
-        //     Vec2::new(32.0 / atlas.width as f32, 0.0),
+        //     Vec2::new(0.0, 0.0),
+        //     Vec2::new(0.5, 0.5),
+        //     Vec2::new(0.0, 0.0),
         //     Vec2::new(1.0, 1.0),
         //     color,
+        // );
+
+        // let p0 = Vec2::new(0.5, 0.5);
+        // let p1 = Vec2::new(0.5, -0.5);
+        // let p2 = Vec2::new(-0.5, 0.5);
+        // let p3 = Vec2::new(-0.5, -0.5);
+        // let color = Vec4::new(1.0, 0.5, 1.0, 1.0);
+        // let uv0 = Vec2::new(0.0, 0.0);
+        // let uv1 = Vec2::new(1.0, 0.0);
+        // let uv2 = Vec2::new(1.0, 1.0);
+        // let uv3 = Vec2::new(0.0, 1.0);
+        // rd.quad(
+        //     p0, p1, p2, p3, color, color, color, color, uv0, uv1, uv2, uv3,
         // );
 
         // let color = Vec4::new(0.5, 0.5, 0.5, 1.0);
@@ -350,7 +353,7 @@ fn main() {
         // let p2 = Vec2::new(-0.5, -0.5);
         // rd.triangle(p0, p1, p2, color, color, color, uv, uv, uv);
 
-        // dbg!(rd.vertices.len());
+        dbg!(rd.vertices.len());
 
         while !window.should_close() {
             let _current_frame = glfw.get_time() as f32;
