@@ -185,8 +185,6 @@ impl Renderer {
             // self.gl.use_program(Some(self.shader));
             // self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
 
-            assert_eq!(self.vertices.align_to::<u8>().1.len(), 8 * 4 * 3);
-
             self.gl.buffer_data_u8_slice(
                 glow::ARRAY_BUFFER,
                 self.vertices.align_to::<u8>().1,
@@ -225,12 +223,20 @@ fn main() {
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
         let mut rd = Renderer::new(gl);
 
-        let color = glm::Vec4::new(0.5, 0.5, 0.5, 1.0);
         let uv = glm::Vec2::new(1.0, 1.0);
-        let p0 = glm::Vec2::new(0.5, -0.5); //bottom left
-        let p1 = glm::Vec2::new(-0.5, -0.5); //bottom right
-        let p2 = glm::Vec2::new(0.0, 0.5); //top
-        rd.triangle(p0, p1, p2, color, color, color, uv, uv, uv);
+        let p0 = glm::Vec2::new(0.5, 0.5); //bottom right
+        let p1 = glm::Vec2::new(0.5, -0.5); //bottom left
+        let p2 = glm::Vec2::new(-0.5, 0.5); //top right
+        let p3 = glm::Vec2::new(-0.5, -0.5); //top top
+
+        let color = glm::Vec4::new(1.0, 0.5, 0.0, 1.0);
+        rd.quad(p0, p1, p2, p3, color, color, color, color, uv, uv, uv, uv);
+
+        // let color = glm::Vec4::new(0.5, 0.5, 0.5, 1.0);
+        // let p0 = glm::Vec2::new(0.5, 0.5);
+        // let p1 = glm::Vec2::new(-0.5, 0.5);
+        // let p2 = glm::Vec2::new(-0.5, -0.5);
+        // rd.triangle(p0, p1, p2, color, color, color, uv, uv, uv);
 
         while !window.should_close() {
             let _current_frame = glfw.get_time() as f32;
