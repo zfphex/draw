@@ -229,7 +229,6 @@ fn main() {
             Some(im.as_bytes()),
         );
 
-        gl.generate_mipmap(glow::TEXTURE_2D);
         gl.active_texture(glow::TEXTURE1);
         gl.bind_texture(glow::TEXTURE_2D, Some(texture1));
 
@@ -262,11 +261,11 @@ fn main() {
             Some(im.as_bytes()),
         );
 
-        gl.generate_mipmap(glow::TEXTURE_2D);
         gl.active_texture(glow::TEXTURE0);
 
-        let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
-        gl.uniform_1_i32(Some(&ul1), 0);
+        //Texture0 is always bound?
+        // let ul1 = gl.get_uniform_location(program, "texture1").unwrap();
+        // gl.uniform_1_i32(Some(&ul1), 0);
 
         let ul2 = gl.get_uniform_location(program, "texture2").unwrap();
         gl.uniform_1_i32(Some(&ul2), 1);
@@ -395,7 +394,7 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
-            test(&gl);
+            // test(&gl);
             // tb.draw(&gl);
 
             // draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
@@ -407,7 +406,7 @@ fn main() {
             // draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
 
             'cubes: {
-                break 'cubes;
+                // break 'cubes;
 
                 //Camera/View transformation
                 let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
