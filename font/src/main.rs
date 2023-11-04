@@ -79,7 +79,11 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(gl: glow::Context) -> Self {
         unsafe {
-            gl.enable(glow::DEPTH_TEST);
+            gl.enable(glow::DEPTH_TEST | glow::DEBUG_OUTPUT);
+            //Not sure if this works.
+            gl.debug_message_callback(|source, gtype, id, serverity, message| {
+                panic!("{source} {gtype} {id} {serverity} {message}");
+            });
             gl.clear_color(0.2, 0.2, 0.2, 1.0);
 
             let vao = gl.create_vertex_array().unwrap();
@@ -207,6 +211,7 @@ fn main() {
             video_mode.width as f32 / 1.5,
             video_mode.height as f32 / 1.5,
         );
+        //TODO: Handle window re-sizing.
         let (mut window, events) = glfw
             .create_window(
                 width as u32,
@@ -215,9 +220,6 @@ fn main() {
                 glfw::WindowMode::Windowed,
             )
             .expect("Failed to create GLFW window.");
-        window.set_key_polling(true);
-        window.set_cursor_pos_polling(true);
-        window.set_cursor_mode(glfw::CursorMode::Disabled);
         window.make_current();
 
         let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
