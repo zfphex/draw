@@ -1,4 +1,4 @@
-use crate::{check_error, Renderer};
+use crate::Renderer;
 use freetype::face::LoadFlag;
 use freetype::{Library, RenderMode};
 use glow::HasContext;
@@ -6,7 +6,7 @@ use nalgebra_glm::{Vec2, Vec4};
 
 const GLYPH_METRICS_CAPACITY: usize = 128;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct Glyph {
     pub ax: f32, // advance.x
     pub ay: f32, // advance.y
@@ -15,7 +15,8 @@ pub struct Glyph {
     pub bl: f32, // bitmap_left;
     pub bt: f32, // bitmap_top;
     pub tx: f32, // x offset of glyph in texture coordinates
-    pub buffer: *const [u8],
+    // pub buffer: *const [u8],
+    pub buffer: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -26,7 +27,7 @@ pub struct Atlas {
     pub glyphs: [Glyph; 128],
 }
 
-pub fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
+pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     let gl = &rd.gl;
 
     let lib = Library::init().unwrap();
@@ -38,39 +39,30 @@ pub fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         width: 0,
         height: 0,
         texture,
-        glyphs: unsafe { std::mem::zeroed() },
+        glyphs: std::mem::zeroed(),
     };
-    let face_height = face.glyph().bitmap().rows();
-
-    // let mut s: Vec<u8> = Vec::new();
 
     //Load symbols, numbers and letters.
     for i in 32..127 {
         //Missing SDF which is 5?
         face.load_char(i, LoadFlag::RENDER).unwrap();
-
         let glyph = face.glyph();
-        let bitmap = glyph.bitmap();
 
-        atlas.width += bitmap.width();
+        atlas.width += glyph.bitmap().width();
 
-        if atlas.height < face_height {
-            atlas.height = face_height;
+        if atlas.height < glyph.bitmap().rows() {
+            atlas.height = glyph.bitmap().rows();
         }
 
         glyph.render_glyph(RenderMode::Normal).unwrap();
 
-        let advance = glyph.advance();
-
-        atlas.glyphs[i].ax = (advance.x >> 6) as f32;
-        atlas.glyphs[i].ay = (advance.y >> 6) as f32;
-        atlas.glyphs[i].bw = bitmap.width() as f32;
-        atlas.glyphs[i].bh = bitmap.rows() as f32;
+        atlas.glyphs[i].ax = (glyph.advance().x >> 6) as f32;
+        atlas.glyphs[i].ay = (glyph.advance().y >> 6) as f32;
+        atlas.glyphs[i].bw = glyph.bitmap().width() as f32;
+        atlas.glyphs[i].bh = glyph.bitmap().rows() as f32;
         atlas.glyphs[i].bl = glyph.bitmap_left() as f32;
         atlas.glyphs[i].bt = glyph.bitmap_top() as f32;
-        atlas.glyphs[i].buffer = bitmap.buffer() as *const [u8];
-
-        // s.extend(bitmap.buffer());
+        atlas.glyphs[i].buffer = glyph.bitmap().buffer().to_vec();
     }
 
     unsafe {
@@ -96,8 +88,7 @@ pub fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
             glow::TEXTURE_WRAP_T,
             glow::CLAMP_TO_EDGE as i32,
         );
-
-        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1); //This must match the image format.
+        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
         gl.tex_image_2d(
             glow::TEXTURE_2D,
             0,
@@ -112,76 +103,23 @@ pub fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
 
         let mut x = 0;
         for i in 32..127 {
-            // atlas.glyphs[i].tx = i as f32 / atlas.width as f32;
-            // let slice = &*atlas.glyphs[i].buffer;
-            // assert!(atlas.glyphs[i].bw as i32 >= 0);
-            // assert!(atlas.glyphs[i].bh as i32 >= 0);
-            // assert!(!(x + atlas.width > atlas.width));
-            // assert!(!(0 > atlas.height));
-
-            // gl.tex_sub_image_2d(
-            //     glow::TEXTURE_2D,
-            //     0,
-            //     x,
-            //     0,
-            //     atlas.glyphs[i].bw as i32,
-            //     atlas.glyphs[i].bh as i32,
-            //     glow::RED,
-            //     glow::UNSIGNED_BYTE,
-            //     glow::PixelUnpackData::Slice(slice),
-            // );
-
-            // check_error(gl);
-            // let error = gl.get_error();
-            // if error != 0 {
-            //     panic!("\'{}\' {:?}", i as u8 as char, atlas.glyphs[i]);
-            // }
-
-            //////////////////////////////////////
-
-            face.load_char(i, LoadFlag::RENDER).unwrap();
-            let glyph = face.glyph();
-            glyph.render_glyph(RenderMode::Normal).unwrap();
-
-            atlas.glyphs[i].ax = (glyph.advance().x >> 6) as f32;
-            atlas.glyphs[i].ay = (glyph.advance().y >> 6) as f32;
-            atlas.glyphs[i].bw = glyph.bitmap().width() as f32;
-            atlas.glyphs[i].bh = glyph.bitmap().rows() as f32;
-            atlas.glyphs[i].bl = glyph.bitmap_left() as f32;
-            atlas.glyphs[i].bt = glyph.bitmap_top() as f32;
             atlas.glyphs[i].tx = x as f32 / atlas.width as f32;
-
-            gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
+            let slice = &atlas.glyphs[i].buffer;
 
             gl.tex_sub_image_2d(
                 glow::TEXTURE_2D,
                 0,
                 x,
                 0,
-                glyph.bitmap().width(),
-                glyph.bitmap().rows(),
+                atlas.glyphs[i].bw as i32,
+                atlas.glyphs[i].bh as i32,
                 glow::RED,
                 glow::UNSIGNED_BYTE,
-                glow::PixelUnpackData::Slice(glyph.bitmap().buffer()),
+                glow::PixelUnpackData::Slice(slice),
             );
 
-            x += glyph.bitmap().width();
+            x += atlas.glyphs[i].bw as i32;
         }
-
-        // dbg!(s.len());
-        // gl.tex_image_2d(
-        //     glow::TEXTURE_2D,
-        //     0,
-        //     glow::RED as i32,
-        //     atlas.width,
-        //     atlas.height,
-        //     0,
-        //     glow::RED,
-        //     glow::UNSIGNED_BYTE,
-        //     Some(&s),
-        // );
-
-        gl.generate_mipmap(glow::TEXTURE_2D);
     }
 
     atlas

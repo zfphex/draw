@@ -327,10 +327,10 @@ fn main() {
         let p1 = Vec2::new(0.5, -0.5);
         let p2 = Vec2::new(-0.5, 0.5);
         let p3 = Vec2::new(-0.5, -0.5);
-        let color = Vec4::new(1.0, 0.5, 0.0, 1.0);
-        let uv0 = Vec2::new(1.0, 1.0);
+        let color = Vec4::new(1.0, 0.5, 1.0, 1.0);
+        let uv0 = Vec2::new(0.0, 0.0);
         let uv1 = Vec2::new(1.0, 0.0);
-        let uv2 = Vec2::new(0.0, 0.0);
+        let uv2 = Vec2::new(1.0, 1.0);
         let uv3 = Vec2::new(0.0, 1.0);
         rd.quad(
             p0, p1, p2, p3, color, color, color, color, uv0, uv1, uv2, uv3,
@@ -349,6 +349,8 @@ fn main() {
         // let p1 = Vec2::new(-0.5, 0.5);
         // let p2 = Vec2::new(-0.5, -0.5);
         // rd.triangle(p0, p1, p2, color, color, color, uv, uv, uv);
+
+        // dbg!(rd.vertices.len());
 
         while !window.should_close() {
             let _current_frame = glfw.get_time() as f32;
