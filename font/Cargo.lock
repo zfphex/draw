@@ -18,11 +18,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ash"
-version = "0.37.0+1.3.269"
-source = "git+https://github.com/ash-rs/ash#335251d383da2c2f08cf13e08da5ba40b1ea409c"
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,15 +138,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
-name = "dx11"
-version = "0.1.0"
-dependencies = [
- "glfw",
- "raw-window-handle",
- "winapi",
-]
-
-[[package]]
 name = "either"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -202,17 +188,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "font"
-version = "0.1.0"
-dependencies = [
- "freetype-rs",
- "glfw",
- "glow",
- "image",
- "nalgebra-glm",
-]
-
-[[package]]
 name = "freetype-rs"
 version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -248,19 +223,11 @@ dependencies = [
 name = "gl"
 version = "0.1.0"
 dependencies = [
+ "freetype-rs",
  "glfw",
  "glow",
  "image",
  "nalgebra-glm",
-]
-
-[[package]]
-name = "gl2"
-version = "0.1.0"
-dependencies = [
- "glfw",
- "glow",
- "mini",
 ]
 
 [[package]]
@@ -398,10 +365,6 @@ checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
 ]
-
-[[package]]
-name = "mini"
-version = "0.1.0"
 
 [[package]]
 name = "miniz_oxide"
@@ -677,15 +640,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
-name = "vk2"
-version = "0.1.0"
-dependencies = [
- "ash",
- "mini",
- "win_window",
-]
-
-[[package]]
 name = "wasm-bindgen"
 version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -764,10 +718,6 @@ dependencies = [
  "bytemuck",
  "safe_arch",
 ]
-
-[[package]]
-name = "win_window"
-version = "0.1.0"
 
 [[package]]
 name = "winapi"

@@ -298,8 +298,7 @@ fn main() {
 
         // let mut tb = TriangleBuffer::new(&gl);
         // let (r, g, b) = (1.0, 1.0, 1.0);
-
-        // for x in 1..10 {
+        // for x in 1..2 {
         //     tb.extend(&[
         //         0.5 + 0.1 * x as f32,
         //         -0.5 + 0.1 * x as f32,
@@ -396,6 +395,7 @@ fn main() {
             //Rendering
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
+            test(&gl);
             // tb.draw(&gl);
 
             // draw_rectangle(&gl, -0.5, 0.0, 0.7, 0.7, color(1.0, 0.5, 0.5));
@@ -407,7 +407,7 @@ fn main() {
             // draw_line(&gl, -0.3, 0.0, 0.3, 0.3, color(0.1, 0.1, 0.1));
 
             'cubes: {
-                // break 'cubes;
+                break 'cubes;
 
                 //Camera/View transformation
                 let view = glm::look_at(&camera_pos, &(camera_pos + camera_front), &camera_up);
