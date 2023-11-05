@@ -10,3 +10,9 @@ edition = "2021"
 glfw = "0.52.0"
 glow = "0.12.1"
 mini = { path="../../mini", version = "0.1.0", features = ["profile"] }
+
+# [profile.release]
+# lto = true
+# opt-level = "z"
+# panic = "abort"
+# strip = "debuginfo"

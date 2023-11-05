@@ -209,6 +209,7 @@ dependencies = [
  "glfw",
  "glow",
  "image",
+ "mini",
  "nalgebra-glm",
 ]
 

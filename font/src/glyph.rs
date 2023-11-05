@@ -1,8 +1,9 @@
 use crate::Renderer;
 use freetype::face::LoadFlag;
 use freetype::{Library, RenderMode};
-use glow::HasContext;
-use nalgebra_glm::{Vec2, Vec4};
+
+pub use glow::HasContext;
+pub use nalgebra_glm::{Vec2, Vec3, Vec4};
 
 const GLYPH_METRICS_CAPACITY: usize = 128;
 const FONT_SIZE: u32 = 12;
@@ -82,12 +83,14 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         gl.tex_parameter_i32(
             glow::TEXTURE_2D,
             glow::TEXTURE_WRAP_S,
-            glow::CLAMP_TO_EDGE as i32,
+            // glow::CLAMP_TO_EDGE as i32,
+            glow::MIRRORED_REPEAT as i32,
         );
         gl.tex_parameter_i32(
             glow::TEXTURE_2D,
             glow::TEXTURE_WRAP_T,
-            glow::CLAMP_TO_EDGE as i32,
+            // glow::CLAMP_TO_EDGE as i32,
+            glow::MIRRORED_REPEAT as i32,
         );
         gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
         gl.tex_image_2d(
