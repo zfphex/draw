@@ -64,18 +64,19 @@ fn main() {
         };
         rd.use_shader(basic);
 
-        // let atlas = load_font(&rd, include_bytes!("../JetBrainsMono.ttf"));
-        let tex = texture();
+        let atlas = load_font(&rd, include_bytes!("../JetBrainsMono.ttf"));
+        // let tex = texture();
 
         //FIXME: Here the font is really big because it expect that I'm drawing to a viewport.
-        // let text_position = Vec2::new(-2.0, 0.0);
-        // draw_line(
-        //     &atlas,
-        //     &mut rd,
-        //     "hi there.",
-        //     text_position,
-        //     Vec4::new(0.3, 0.7, 0.6, 1.0),
-        // );
+
+        draw_character(
+            &atlas,
+            &mut rd,
+            'a',
+            0.0,
+            0.0,
+            Vec4::new(0.3, 0.7, 0.6, 1.0),
+        );
 
         // let color = Vec4::new(0.8, 0.8, 0.8, 1.0);
         // rd.texture(
@@ -105,29 +106,31 @@ fn main() {
         let uv2 = Vec2::new(0.0, 0.0);
         let uv3 = Vec2::new(1.0, 0.0);
 
-        rd.triangle(
-            TOP_RIGHT,
-            TOP_LEFT,
-            BOTTOM_LEFT,
-            color,
-            color,
-            color,
-            UV_TOP_RIGHT,
-            UV_TOP_LEFT,
-            UV_BOTTOM_LEFT,
-        );
+        // rd.draw_rectangle(-0.5, -0.5, 1.0, 1.0, color);
 
-        rd.triangle(
-            BOTTOM_LEFT,
-            BOTTOM_RIGHT,
-            TOP_RIGHT,
-            color,
-            color,
-            color,
-            UV_BOTTOM_LEFT,
-            UV_BOTTOM_RIGHT,
-            UV_TOP_RIGHT,
-        );
+        // rd.triangle(
+        //     TOP_RIGHT,
+        //     TOP_LEFT,
+        //     BOTTOM_LEFT,
+        //     color,
+        //     color,
+        //     color,
+        //     UV_TOP_RIGHT,
+        //     UV_TOP_LEFT,
+        //     UV_BOTTOM_LEFT,
+        // );
+
+        // rd.triangle(
+        //     BOTTOM_LEFT,
+        //     BOTTOM_RIGHT,
+        //     TOP_RIGHT,
+        //     color,
+        //     color,
+        //     color,
+        //     UV_BOTTOM_LEFT,
+        //     UV_BOTTOM_RIGHT,
+        //     UV_TOP_RIGHT,
+        // );
 
         // rd.quad(
         //     TOP_RIGHT,
@@ -144,11 +147,10 @@ fn main() {
         //     uv3,
         // );
 
-        let mut tex = [0.0; 8];
-        let pos = [0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5];
-        generate_texture_coordinates(&pos, &mut tex);
+        // let mut tex = [0.0; 8];
+        // let pos = [0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5];
+        // generate_texture_coordinates(&pos, &mut tex);
 
-        dbg!(pos, tex);
         // return;
 
         fn generate_texture_coordinates(vertices: &[f32; 8], tex_coords: &mut [f32; 8]) {

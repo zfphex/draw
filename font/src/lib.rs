@@ -140,6 +140,23 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 
+impl Vertex {
+    pub const fn new(px: f32, py: f32, ux: f32, uy: f32, r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self {
+            position: Vec2::new(px, py),
+            color: Vec4::new(r, g, b, a),
+            uv: Vec2::new(ux, uy),
+        }
+    }
+    pub const fn new_2(px: f32, py: f32, ux: f32, uy: f32, color: Vec4) -> Self {
+        Self {
+            position: Vec2::new(px, py),
+            color,
+            uv: Vec2::new(ux, uy),
+        }
+    }
+}
+
 #[inline]
 pub fn buffer(vertices: &[f32]) -> &[u8] {
     unsafe {
@@ -237,6 +254,7 @@ impl Renderer {
         self.vertex(p1, color, Vec2::new(0., 0.));
     }
 
+    ///Create in counter clockwise order.
     pub fn triangle(
         &mut self,
         p0: Vec2,
@@ -288,6 +306,27 @@ impl Renderer {
             uvp + Vec2::new(0.0, uvs.y),
             uvp + uvs,
         );
+    }
+
+    /// Draws a solid rectangle with its top-left corner at `[x, y]` with size `[w, h]` (width going to
+    /// the right, height going down).
+    pub fn draw_rectangle(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
+        //Bottom left, bottom right, top right.
+        //Top right, top left, bottom left.
+
+        //TODO: I want to mix and match floats and vecs when creating vertex data.
+        //Not sure how to do it. Right now it sucks bad.
+        #[rustfmt::skip]
+        let vertices = [
+            Vertex::new_2(x    , y    , 0.0, 0.0, color),
+            Vertex::new_2(x + w, y    , 1.0, 0.0, color),
+            Vertex::new_2(x + w, y + h, 1.0, 1.0, color),
+
+            Vertex::new_2(x + w, y + h, 1.0, 1.0, color),
+            Vertex::new_2(x    , y + h, 0.0, 1.0, color),
+            Vertex::new_2(x    , y    , 0.0, 0.0, color),
+        ];
+        self.vertices.extend(vertices);
     }
 
     pub fn use_shader(&self, program: NativeProgram) {

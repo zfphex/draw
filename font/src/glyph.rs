@@ -10,14 +10,21 @@ const FONT_SIZE: u32 = 12;
 
 #[derive(Debug, Clone, Default)]
 pub struct Glyph {
-    pub ax: f32, // advance.x
-    pub ay: f32, // advance.y
-    pub bw: f32, // bitmap.width;
-    pub bh: f32, // bitmap.rows;
-    pub bl: f32, // bitmap_left;
-    pub bt: f32, // bitmap_top;
-    pub tx: f32, // x offset of glyph in texture coordinates
-    // pub buffer: *const [u8],
+    /// advance.x
+    pub ax: f32,
+    /// advance.y
+    pub ay: f32,
+    /// bitmap.width
+    pub bw: f32,
+    /// bitmap.rows
+    pub bh: f32,
+    /// bitmap_left
+    pub bl: f32,
+    /// bitmap_top
+    pub bt: f32,
+    /// x offset of glyph in texture coordinates
+    pub tx: f32,
+    //TODO: Remove
     pub buffer: Vec<u8>,
 }
 
@@ -41,6 +48,7 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         width: 0,
         height: 0,
         texture,
+        #[allow(invalid_value)]
         glyphs: std::mem::zeroed(),
     };
 
@@ -83,14 +91,14 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         gl.tex_parameter_i32(
             glow::TEXTURE_2D,
             glow::TEXTURE_WRAP_S,
-            // glow::CLAMP_TO_EDGE as i32,
-            glow::MIRRORED_REPEAT as i32,
+            glow::CLAMP_TO_EDGE as i32,
+            // glow::MIRRORED_REPEAT as i32,
         );
         gl.tex_parameter_i32(
             glow::TEXTURE_2D,
             glow::TEXTURE_WRAP_T,
-            // glow::CLAMP_TO_EDGE as i32,
-            glow::MIRRORED_REPEAT as i32,
+            glow::CLAMP_TO_EDGE as i32,
+            // glow::MIRRORED_REPEAT as i32,
         );
         gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
         gl.tex_image_2d(
@@ -129,34 +137,25 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     atlas
 }
 
-pub fn draw_line(atlas: &Atlas, rd: &mut Renderer, text: &str, mut pos: Vec2, color: Vec4) {
-    let chars = text.as_bytes();
+// pub fn draw_line(atlas: &Atlas, rd: &mut Renderer, text: &str, x: f32, y: f32, color: Vec4) {
+//     let chars = text.as_bytes();
 
-    for c in chars {
-        // eprint!("{} ", *c as u8 as char);
-        let mut c = *c as usize;
+//     for c in chars {
+//         let mut c = *c as usize;
 
-        if c > GLYPH_METRICS_CAPACITY {
-            c = '?' as usize;
-        }
+//         if c > GLYPH_METRICS_CAPACITY {
+//             c = '?' as usize;
+//         }
 
-        let metric = &atlas.glyphs[c];
-        let x2 = pos.x + metric.bl;
-        let y2 = pos.y - metric.bt;
-        let w = metric.bw;
-        let h = metric.bh;
-        pos.x += metric.ax;
-        pos.y += metric.ay;
+//         let metric = &atlas.glyphs[c];
+//     }
+// }
 
-        rd.texture(
-            Vec2::new(x2, -y2),
-            Vec2::new(w, -h),
-            Vec2::new(metric.tx, 0.0),
-            Vec2::new(
-                metric.bw / atlas.width as f32,
-                metric.bh / atlas.height as f32,
-            ),
-            color,
-        );
+pub fn draw_character(atlas: &Atlas, rd: &mut Renderer, c: char, x: f32, y: f32, color: Vec4) {
+    let mut c = c as usize;
+    if c > GLYPH_METRICS_CAPACITY {
+        c = '?' as usize;
     }
+
+    let metric = &atlas.glyphs[c];
 }
