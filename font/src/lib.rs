@@ -157,6 +157,20 @@ macro_rules! vertex {
             color: $color.into(),
         }
     };
+    ($p0:expr, $p1:expr, $uv0:expr, $uv1:expr, $color:expr) => {
+        Vertex {
+            position: ($p0, $p1).into(),
+            uv: ($uv0, $uv1).into(),
+            color: $color.into(),
+        }
+    };
+    ($p0:expr, $p1:expr, $uv0:expr, $uv1:expr, $r:expr, $g:expr, $b:expr, $a:expr) => {
+        Vertex {
+            position: ($p0, $p1).into(),
+            uv: ($uv0, $uv1).into(),
+            color: ($r, $g, $b, $a).into(),
+        }
+    };
 }
 
 //I think rust packed my struct in a weird way.
@@ -166,23 +180,6 @@ pub struct Vertex {
     pub position: Vec2,
     pub uv: Vec2,
     pub color: Vec4,
-}
-
-impl Vertex {
-    pub const fn new(px: f32, py: f32, ux: f32, uy: f32, r: f32, g: f32, b: f32, a: f32) -> Self {
-        Self {
-            position: Vec2::new(px, py),
-            color: Vec4::new(r, g, b, a),
-            uv: Vec2::new(ux, uy),
-        }
-    }
-    pub const fn new_2(px: f32, py: f32, ux: f32, uy: f32, color: Vec4) -> Self {
-        Self {
-            position: Vec2::new(px, py),
-            color,
-            uv: Vec2::new(ux, uy),
-        }
-    }
 }
 
 #[inline]
@@ -209,6 +206,10 @@ impl Renderer {
             // gl.enable(glow::DEPTH_TEST);
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
+
+            // gl.enable(glow::BLEND);
+            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {
                     return;
@@ -319,23 +320,6 @@ impl Renderer {
         self.triangle(bl, br, tr, c1, c2, c3, uv1, uv2, uv3);
     }
 
-    pub fn texture(&mut self, pos: Vec2, size: Vec2, uvp: Vec2, uvs: Vec2, color: Vec4) {
-        // self.quad(
-        //     pos,
-        //     pos + Vec2::new(size.x, 0.0),
-        //     pos + Vec2::new(0.0, size.y),
-        //     pos + size,
-        //     color,
-        //     color,
-        //     color,
-        //     color,
-        //     uvp,
-        //     uvp + Vec2::new(uvs.x, 0.0),
-        //     uvp + Vec2::new(0.0, uvs.y),
-        //     uvp + uvs,
-        // );
-    }
-
     /// Draws a solid rectangle with its top-left corner at `[x, y]` with size `[w, h]` (width going to
     /// the right, height going down).
     pub fn draw_rectangle(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
@@ -346,13 +330,13 @@ impl Renderer {
         //Not sure how to do it. Right now it sucks bad.
         #[rustfmt::skip]
         let vertices = [
-            Vertex::new_2(x    , y    , 0.0, 0.0, color),
-            Vertex::new_2(x + w, y    , 1.0, 0.0, color),
-            Vertex::new_2(x + w, y + h, 1.0, 1.0, color),
+            vertex!(x    , y    , 0.0, 0.0, color),
+            vertex!(x + w, y    , 1.0, 0.0, color),
+            vertex!(x + w, y + h, 1.0, 1.0, color),
 
-            Vertex::new_2(x + w, y + h, 1.0, 1.0, color),
-            Vertex::new_2(x    , y + h, 0.0, 1.0, color),
-            Vertex::new_2(x    , y    , 0.0, 0.0, color),
+            vertex!(x + w, y + h, 1.0, 1.0, color),
+            vertex!(x    , y + h, 0.0, 1.0, color),
+            vertex!(x    , y    , 0.0, 0.0, color),
         ];
         self.vertices.extend(vertices);
     }

@@ -27,6 +27,45 @@ pub struct Atlas {
     pub texture: glow::NativeTexture,
     pub glyphs: [Glyph; 128],
 }
+impl Atlas {
+    pub fn draw_text(
+        &self,
+        rd: &mut Renderer,
+        text: &str,
+        mut x: f32,
+        y: f32,
+        scale: f32,
+        color: Vec4,
+    ) {
+        // Iterate through all characters
+        for c in text.chars() {
+            let ch = &self.glyphs[c as usize];
+
+            let xpos = x + ch.bearing.x * scale;
+            let ypos = y - (ch.height - ch.bearing.y) * scale;
+
+            let w = ch.width * scale;
+            let h = ch.height * scale;
+
+            //TODO: Orthographic projection is not working.
+            let vert = [
+                vertex!((xpos, ypos + h)),
+                vertex!((xpos, ypos)),
+                vertex!((xpos + w, ypos)),
+                vertex!((xpos, ypos + h)),
+                vertex!((xpos + w, ypos)),
+                vertex!((xpos + w, ypos + h)),
+            ];
+
+            rd.vertices.extend(vert);
+
+            // Advance cursors for the next glyph
+            x += (ch.advance.x) as f32 * scale;
+
+            // rd.vertices.extend(vertices);
+        }
+    }
+}
 
 pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     let gl = &rd.gl;
