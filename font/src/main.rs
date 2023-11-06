@@ -3,11 +3,6 @@ use font::*;
 use glfw::{Action, Key, Monitor, WindowEvent};
 use std::mem::{size_of, MaybeUninit};
 
-#[allow(unused)]
-use glm::{Vec2, Vec3, Vec4};
-
-extern crate nalgebra_glm as glm;
-
 //https://www.khronos.org/opengl/wiki/Face_Culling
 //By default OpenGL uses counter-clockwise winding order.
 fn main() {
@@ -46,8 +41,6 @@ fn main() {
 
         let mut rd = Renderer::new(gl);
 
-        assert_eq!(size_of::<glm::Vec3>(), 3 * 4);
-
         // let font = create_program(
         //     &gl,
         //     include_str!("../shaders/simple.vert"),
@@ -59,8 +52,8 @@ fn main() {
             include_str!("../shaders/simple.vert"),
             include_str!("../shaders/text.frag"),
             Vec2 => 0,
-            Vec4 => 1,
-            Vec2 => 2
+            Vec2 => 1,
+            Vec4 => 2
         };
         rd.use_shader(basic);
 
@@ -72,11 +65,17 @@ fn main() {
         draw_character(
             &atlas,
             &mut rd,
-            'a',
+            'g',
             0.0,
             0.0,
-            Vec4::new(0.3, 0.7, 0.6, 1.0),
+            Vec4::new(1.0, 1.0, 1.0, 1.0),
         );
+        // draw_line(
+        //     &atlas,
+        //     &mut rd,
+        //     "THIS IS A TEST",
+        //     (1.0, 1.0, 1.0, 1.0).into(),
+        // );
 
         // let color = Vec4::new(0.8, 0.8, 0.8, 1.0);
         // rd.texture(

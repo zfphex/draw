@@ -5,7 +5,10 @@ use std::mem::MaybeUninit;
 extern crate nalgebra_glm as glm;
 
 pub mod glyph;
+pub mod math;
+
 pub use glyph::*;
+pub use math::*;
 
 pub static mut GL: MaybeUninit<Context> = MaybeUninit::uninit();
 
@@ -56,7 +59,7 @@ macro_rules! shader {
             let mut offset = 0;
 
             $(
-                stride += std::mem::size_of::<$type>() ;
+                stride += std::mem::size_of::<$type>();
             )*
 
             $(
@@ -131,13 +134,38 @@ pub unsafe fn texture() -> NativeTexture {
     texture
 }
 
+#[macro_export]
+macro_rules! vertex {
+    ($position:expr) => {
+        Vertex {
+            position: $position.into(),
+            uv: Vec2::default(),
+            color: Vec4::default(),
+        }
+    };
+    ($position:expr, $uv:expr) => {
+        Vertex {
+            position: $position.into(),
+            uv: $uv.into(),
+            color: Vec4::default(),
+        }
+    };
+    ($position:expr, $uv:expr, $color:expr) => {
+        Vertex {
+            position: $position.into(),
+            uv: $uv.into(),
+            color: $color.into(),
+        }
+    };
+}
+
 //I think rust packed my struct in a weird way.
 //So align won't work unless you use `repr(C)`.
 #[repr(C)]
 pub struct Vertex {
     pub position: Vec2,
-    pub color: Vec4,
     pub uv: Vec2,
+    pub color: Vec4,
 }
 
 impl Vertex {
@@ -292,20 +320,20 @@ impl Renderer {
     }
 
     pub fn texture(&mut self, pos: Vec2, size: Vec2, uvp: Vec2, uvs: Vec2, color: Vec4) {
-        self.quad(
-            pos,
-            pos + Vec2::new(size.x, 0.0),
-            pos + Vec2::new(0.0, size.y),
-            pos + size,
-            color,
-            color,
-            color,
-            color,
-            uvp,
-            uvp + Vec2::new(uvs.x, 0.0),
-            uvp + Vec2::new(0.0, uvs.y),
-            uvp + uvs,
-        );
+        // self.quad(
+        //     pos,
+        //     pos + Vec2::new(size.x, 0.0),
+        //     pos + Vec2::new(0.0, size.y),
+        //     pos + size,
+        //     color,
+        //     color,
+        //     color,
+        //     color,
+        //     uvp,
+        //     uvp + Vec2::new(uvs.x, 0.0),
+        //     uvp + Vec2::new(0.0, uvs.y),
+        //     uvp + uvs,
+        // );
     }
 
     /// Draws a solid rectangle with its top-left corner at `[x, y]` with size `[w, h]` (width going to
