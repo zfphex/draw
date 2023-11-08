@@ -4,7 +4,6 @@ use freetype::{Library, RenderMode};
 
 pub use glow::HasContext;
 
-const GLYPH_METRICS_CAPACITY: usize = 128;
 const FONT_SIZE: u32 = 48;
 
 ///https://learnopengl.com/img/in-practice/glyph.png
@@ -33,7 +32,10 @@ impl Atlas {
     //TODO: Figure out how to scale a texture.
     pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, y: f32, color: Vec4) {
         for c in text.chars() {
-            let ch = &self.glyphs[c as usize];
+            let ch = match self.glyphs.get(c as usize) {
+                Some(ch) => ch,
+                None => &self.glyphs['?' as usize],
+            };
 
             let xpos = x + ch.bearing.x;
             let ypos = y - (ch.height - ch.bearing.y);
@@ -43,15 +45,10 @@ impl Atlas {
 
             //The y UV is flipped here. !uv.y
             let uv = ch.uv;
-            let uv_right = uv + (w / self.width as f32);
+            let uv_right = uv + (ch.width / self.width as f32);
 
-            //Top left
-            //Bottom left
-            //Bottom right
-
-            //Bottom right
-            //Top right
-            //Top left
+            //Top left, Bottom left, Bottom right
+            //Bottom right, Top right, Top left
 
             #[rustfmt::skip]
             let vert = [
@@ -85,6 +82,7 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
 
     //Load symbols, numbers and letters.
     for i in 32..127 {
+        eprint!("{}", i as u8 as char);
         face.load_char(i, LoadFlag::RENDER).unwrap();
         let glyph = face.glyph();
         let bitmap = glyph.bitmap();
@@ -173,51 +171,4 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         texture,
         glyphs,
     }
-}
-
-pub const RED: Vec4 = Vec4::new(1.0, 0.0, 0.0, 1.0);
-pub const GREEN: Vec4 = Vec4::new(0.0, 1.0, 0.0, 1.0);
-pub const BLUE: Vec4 = Vec4::new(0.0, 0.0, 1.0, 1.0);
-
-#[allow(unused)]
-pub fn draw_character(atlas: &Atlas, rd: &mut Renderer, c: char, x: f32, y: f32, color: Vec4) {
-    let mut c = c as usize;
-    if c > GLYPH_METRICS_CAPACITY {
-        c = '?' as usize;
-    }
-
-    let metrics = &atlas.glyphs[c];
-
-    let aw = atlas.width as f32;
-    let ah = atlas.height as f32;
-    let uv = metrics.uv;
-
-    let scale_x = 1.0 / metrics.width;
-    let scale_y = 1.0 / metrics.height;
-
-    let top_left = (0.0, 0.0);
-    let top_right = (metrics.advance.x * scale_x, 0.0);
-    let bottom_left = (0.0, metrics.height * scale_y);
-    let bottom_right = (metrics.advance.x * scale_x, metrics.height * scale_y);
-
-    // let uv_top_left = (tx, 0.0);
-    // let uv_top_right = (tx + metrics.bw / aw, 0.0);
-    // let uv_bottom_left = (tx, metrics.bh / ah);
-    // let uv_bottom_right = (tx + metrics.bw / aw, metrics.bh / ah);
-
-    let uv_top_left = (uv, 1.0);
-    let uv_top_right = (uv + metrics.width / aw, 1.0);
-    let uv_bottom_left = (uv, 1.0 - (metrics.height / ah));
-    let uv_bottom_right = (uv + metrics.width / aw, 1.0 - (metrics.height / ah));
-
-    let vert = [
-        vertex!(top_right, color, uv_top_right),
-        vertex!(top_left, color, uv_top_left),
-        vertex!(bottom_left, color, uv_bottom_left),
-        vertex!(bottom_left, color, uv_bottom_left),
-        vertex!(bottom_right, color, uv_bottom_right),
-        vertex!(top_right, color, uv_top_right),
-    ];
-
-    rd.vertices.extend(vert);
 }

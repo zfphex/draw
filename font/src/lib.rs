@@ -102,40 +102,6 @@ macro_rules! shader {
    };
 }
 
-pub unsafe fn texture() -> NativeTexture {
-    let gl = GL.assume_init_ref();
-    let bytes = include_bytes!("../container.jpg");
-    let im = image::load_from_memory(bytes).unwrap();
-    let texture = gl.create_texture().unwrap();
-
-    gl.active_texture(glow::TEXTURE0);
-    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_MIN_FILTER,
-        glow::LINEAR as i32,
-    );
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_MAG_FILTER,
-        glow::LINEAR as i32,
-    );
-    gl.tex_image_2d(
-        glow::TEXTURE_2D,
-        0,
-        glow::RGB as i32,
-        im.width() as i32,
-        im.height() as i32,
-        0,
-        glow::RGB,
-        glow::UNSIGNED_BYTE,
-        Some(im.as_bytes()),
-    );
-    texture
-}
-
 #[macro_export]
 macro_rules! vertex {
     () => {
@@ -205,17 +171,20 @@ pub struct Renderer {
     pub vao: NativeVertexArray,
     pub vbo: NativeBuffer,
     pub buffer_size: usize,
+    pub width: i32,
+    pub height: i32,
+    pub projection: glm::Mat4x4,
 }
 
 impl Renderer {
-    pub fn new(gl: &'static glow::Context) -> Self {
+    pub fn new(gl: &'static glow::Context, width: i32, height: i32) -> Self {
         unsafe {
             // gl.enable(glow::DEPTH_TEST);
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
 
-            // gl.enable(glow::BLEND);
-            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+            gl.enable(glow::BLEND);
+            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
 
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {
@@ -267,12 +236,31 @@ impl Renderer {
             let vbo = gl.create_buffer().unwrap();
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
 
+            #[allow(unused)]
+            let basic = shader! {
+                include_str!("../shaders/simple.vert"),
+                include_str!("../shaders/text.frag"),
+                Vec2 => 0,
+                Vec2 => 1,
+                Vec4 => 2
+            };
+
+            gl.use_program(Some(basic));
+
+            //1:1 pixel mapping projection matrix.
+            let projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            let location = gl.get_uniform_location(basic, "projection").unwrap();
+            gl.uniform_matrix_4_f32_slice(Some(&location), false, projection.as_slice());
+
             Self {
                 gl,
                 vao,
                 vbo,
                 vertices: Vec::new(),
                 buffer_size: 0,
+                width,
+                height,
+                projection,
             }
         }
     }
@@ -283,11 +271,6 @@ impl Renderer {
             color,
             uv,
         });
-    }
-
-    pub fn line(&mut self, p0: Vec2, p1: Vec2, color: Vec4) {
-        self.vertex(p0, color, Vec2::new(0., 0.));
-        self.vertex(p1, color, Vec2::new(0., 0.));
     }
 
     ///Create in counter clockwise order.
@@ -308,28 +291,9 @@ impl Renderer {
         self.vertex(p2, c2, uv2);
     }
 
-    pub fn quad(
-        &mut self,
-        tr: Vec2,
-        tl: Vec2,
-        bl: Vec2,
-        br: Vec2,
-        c0: Vec4,
-        c1: Vec4,
-        c2: Vec4,
-        c3: Vec4,
-        uv0: Vec2,
-        uv1: Vec2,
-        uv2: Vec2,
-        uv3: Vec2,
-    ) {
-        self.triangle(tr, tl, bl, c0, c1, c2, uv0, uv1, uv2);
-        self.triangle(bl, br, tr, c1, c2, c3, uv1, uv2, uv3);
-    }
-
     /// Draws a solid rectangle with its top-left corner at `[x, y]` with size `[w, h]` (width going to
     /// the right, height going down).
-    pub fn draw_rectangle(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
+    pub fn quad(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
         //Bottom left, bottom right, top right.
         //Top right, top left, bottom left.
 
@@ -382,7 +346,10 @@ impl Renderer {
         }
     }
 
-    pub fn update(&self, w: i32, h: i32) {
-        unsafe { self.gl.viewport(0, 0, w, h) }
+    pub fn update(&mut self, width: i32, height: i32) {
+        unsafe {
+            self.projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            self.gl.viewport(0, 0, width, height);
+        }
     }
 }
