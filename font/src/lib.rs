@@ -248,8 +248,9 @@ impl Renderer {
 
             gl.use_program(Some(basic));
 
-            //1:1 pixel mapping projection matrix.
+            //1:1 pixel mapping projection matrix. Bottom right origin.
             let projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            // let projection = glm::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
             let location = gl.get_uniform_location(basic, "projection").unwrap();
             gl.uniform_matrix_4_f32_slice(Some(&location), false, projection.as_slice());
 
@@ -300,14 +301,24 @@ impl Renderer {
 
         //TODO: I want to mix and match floats and vecs when creating vertex data.
         //Not sure how to do it. Right now it sucks bad.
+        // #[rustfmt::skip]
+        // let vertices = [
+        //     vertex!((x    , y    ), color, (0.0, 0.0)),
+        //     vertex!((x + w, y    ), color, (1.0, 0.0)),
+        //     vertex!((x + w, y + h), color, (1.0, 1.0)),
+        //     vertex!((x + w, y + h), color, (1.0, 1.0)),
+        //     vertex!((x    , y + h), color, (0.0, 1.0)),
+        //     vertex!((x    , y    ), color, (0.0, 0.0))
+        // ];
+
         #[rustfmt::skip]
         let vertices = [
-            vertex!((x    , y    ), color, (0.0, 0.0)),
-            vertex!((x + w, y    ), color, (1.0, 0.0)),
-            vertex!((x + w, y + h), color, (1.0, 1.0)),
-            vertex!((x + w, y + h), color, (1.0, 1.0)),
-            vertex!((x    , y + h), color, (0.0, 1.0)),
-            vertex!((x    , y    ), color, (0.0, 0.0))
+            vertex!((x    , y    ), color, (0.0, 1.0)),
+            vertex!((x + w, y    ), color, (1.0, 1.0)),
+            vertex!((x + w, y + h), color, (1.0, 0.0)),
+            vertex!((x + w, y + h), color, (1.0, 0.0)),
+            vertex!((x    , y + h), color, (0.0, 0.0)),
+            vertex!((x    , y    ), color, (0.0, 1.0))
         ];
         self.vertices.extend(vertices);
     }

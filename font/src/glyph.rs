@@ -30,6 +30,9 @@ pub struct Atlas {
 
 impl Atlas {
     //TODO: Figure out how to scale a texture.
+    //It does seem like the projection is squishing the font.
+    //The big letters like j seem fine but letters like e are squished.
+    //I should probably align everything in the texture and save myself the trouble.
     pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, y: f32, color: Vec4) {
         for c in text.chars() {
             let ch = match self.glyphs.get(c as usize) {
@@ -43,7 +46,9 @@ impl Atlas {
             let w = ch.width;
             let h = ch.height;
 
-            //The y UV is flipped here. !uv.y
+            //The projection matrix is top left which flips the y.
+            //So we no longer need to flip UV's.
+            //~~The y UV is flipped here. !uv.y~~
             let uv_left = ch.uv;
             let uv_right = ch.uv + (ch.width / self.width as f32);
             let uv_top = 1.0;
