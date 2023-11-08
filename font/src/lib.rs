@@ -179,12 +179,13 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(gl: &'static glow::Context, width: i32, height: i32) -> Self {
         unsafe {
-            // gl.enable(glow::DEPTH_TEST);
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
 
-            gl.enable(glow::BLEND);
-            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+            // gl.enable(glow::DEPTH_TEST);
+
+            // gl.enable(glow::BLEND);
+            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
 
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {
@@ -348,7 +349,7 @@ impl Renderer {
 
     pub fn update(&mut self, width: i32, height: i32) {
         unsafe {
-            self.projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            // self.projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
             self.gl.viewport(0, 0, width, height);
         }
     }

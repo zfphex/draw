@@ -44,20 +44,22 @@ impl Atlas {
             let h = ch.height;
 
             //The y UV is flipped here. !uv.y
-            let uv = ch.uv;
-            let uv_right = uv + (ch.width / self.width as f32);
+            let uv_left = ch.uv;
+            let uv_right = ch.uv + (ch.width / self.width as f32);
+            let uv_top = 1.0;
+            let uv_bottom = 0.0;
 
             //Top left, Bottom left, Bottom right
             //Bottom right, Top right, Top left
 
             #[rustfmt::skip]
             let vert = [
-                vertex!((xpos, ypos + h),     color, (uv, 0.0)),
-                vertex!((xpos, ypos),         color, (uv, 1.0)),
-                vertex!((xpos + w, ypos),     color, (uv_right, 1.0)),
-                vertex!((xpos + w, ypos),     color, (uv_right, 1.0)),
-                vertex!((xpos + w, ypos + h), color, (uv_right, 0.0)),
-                vertex!((xpos, ypos + h),     color, (uv, 0.0)),
+                vertex!((xpos, ypos + h),     color, (uv_left, uv_bottom)),
+                vertex!((xpos, ypos),         color, (uv_left, uv_top)),
+                vertex!((xpos + w, ypos),     color, (uv_right, uv_top)),
+                vertex!((xpos + w, ypos),     color, (uv_right, uv_top)),
+                vertex!((xpos + w, ypos + h), color, (uv_right, uv_bottom)),
+                vertex!((xpos, ypos + h),     color, (uv_left, uv_bottom)),
             ];
 
             rd.vertices.extend(vert);
@@ -82,7 +84,6 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
 
     //Load symbols, numbers and letters.
     for i in 32..127 {
-        eprint!("{}", i as u8 as char);
         face.load_char(i, LoadFlag::RENDER).unwrap();
         let glyph = face.glyph();
         let bitmap = glyph.bitmap();
@@ -103,6 +104,10 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         glyphs[i].height = bitmap.rows() as f32;
         glyphs[i].bearing = Vec2::new(glyph.bitmap_left() as f32, glyph.bitmap_top() as f32);
         glyphs[i].buffer = bitmap.buffer().to_vec();
+        // println!(
+        //     "{} x: {} y: {} height: {}",
+        //     i as u8 as char, glyphs[i].bearing.x, glyphs[i].bearing.y, glyphs[i].height
+        //);
     }
 
     let texture = unsafe { gl.create_texture().unwrap() };

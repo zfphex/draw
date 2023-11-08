@@ -83,12 +83,14 @@ fn main() {
         // );
         // rd.use_shader(font);
 
-        let atlas = load_font(&rd, include_bytes!("../JetBrainsMono.ttf"));
+        // let atlas = load_font(&rd, include_bytes!("../JetBrainsMono.ttf"));
+        let atlas = load_font(&rd, include_bytes!("../CascadiaMono.ttf"));
         // let tex = texture();
 
         atlas.draw_text(
             &mut rd,
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+            // "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "abcdefghijklmnopqrstuvwxyz",
             25.0,
             25.0,
             (1.0, 1.0, 1.0, 1.0).into(),
