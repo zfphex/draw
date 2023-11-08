@@ -1,4 +1,4 @@
-use crate::{vertex, Renderer, Vec2, Vec4, Vertex};
+use crate::*;
 use freetype::face::LoadFlag;
 use freetype::{Library, RenderMode};
 
@@ -27,6 +27,7 @@ pub struct Atlas {
     pub texture: glow::NativeTexture,
     pub glyphs: [Glyph; 128],
 }
+
 impl Atlas {
     pub fn draw_text(
         &self,
@@ -37,7 +38,6 @@ impl Atlas {
         scale: f32,
         color: Vec4,
     ) {
-        // Iterate through all characters
         for c in text.chars() {
             let ch = &self.glyphs[c as usize];
 
@@ -47,22 +47,44 @@ impl Atlas {
             let w = ch.width * scale;
             let h = ch.height * scale;
 
-            //TODO: Orthographic projection is not working.
+            //If the y uv is 1 it's top if it's 0 it's bottom.
+            let uv = ch.uv;
+
+            //Top left
+            //Bottom left
+            //Bottom right
+
+            //Bottom right
+            //Top right
+            //Top left
+
+            let uv_right = uv + (w / self.width as f32);
+
+            dbg!(w / self.width as f32);
+            #[rustfmt::skip]
             let vert = [
-                vertex!((xpos, ypos + h)),
-                vertex!((xpos, ypos)),
-                vertex!((xpos + w, ypos)),
-                vertex!((xpos, ypos + h)),
-                vertex!((xpos + w, ypos)),
-                vertex!((xpos + w, ypos + h)),
+                vertex!((xpos, ypos + h),     color, (uv, 0.0)),
+                vertex!((xpos, ypos),         color, (uv, 1.0)),
+                vertex!((xpos + w, ypos),     color, (uv_right, 1.0)),
+                vertex!((xpos + w, ypos),     color, (uv_right, 1.0)),
+                vertex!((xpos + w, ypos + h), color, (uv_right, 0.0)),
+                vertex!((xpos, ypos + h),     color, (uv, 0.0)),
             ];
+
+            // #[rustfmt::skip]
+            // let vert = [
+            //     vertex!((xpos, ypos + h),     color, UV_TOP_LEFT),
+            //     vertex!((xpos, ypos),         color, UV_BOTTOM_LEFT),
+            //     vertex!((xpos + w, ypos),     color, UV_BOTTOM_RIGHT),
+            //     vertex!((xpos + w, ypos),     color, UV_BOTTOM_RIGHT),
+            //     vertex!((xpos + w, ypos + h), color, UV_TOP_RIGHT),
+            //     vertex!((xpos, ypos + h),     color, UV_TOP_LEFT),
+            // ];
 
             rd.vertices.extend(vert);
 
             // Advance cursors for the next glyph
             x += (ch.advance.x) as f32 * scale;
-
-            // rd.vertices.extend(vertices);
         }
     }
 }
@@ -204,12 +226,12 @@ pub fn draw_character(atlas: &Atlas, rd: &mut Renderer, c: char, x: f32, y: f32,
     let uv_bottom_right = (uv + metrics.width / aw, 1.0 - (metrics.height / ah));
 
     let vert = [
-        vertex!(top_right, uv_top_right, color),
-        vertex!(top_left, uv_top_left, color),
-        vertex!(bottom_left, uv_bottom_left, color),
-        vertex!(bottom_left, uv_bottom_left, color),
-        vertex!(bottom_right, uv_bottom_right, color),
-        vertex!(top_right, uv_top_right, color),
+        vertex!(top_right, color, uv_top_right),
+        vertex!(top_left, color, uv_top_left),
+        vertex!(bottom_left, color, uv_bottom_left),
+        vertex!(bottom_left, color, uv_bottom_left),
+        vertex!(bottom_right, color, uv_bottom_right),
+        vertex!(top_right, color, uv_top_right),
     ];
 
     rd.vertices.extend(vert);

@@ -41,7 +41,7 @@ fn main() {
         }));
         let gl = GL.assume_init_ref();
 
-        let projection = glm::ortho(0.0, width as f32, 0.0, height as f32, 0.0, 0.0);
+        println!("Projection: 0 - {width}, 0 - {height}");
         let mut rd = Renderer::new(gl);
 
         // let font = create_program(
@@ -60,6 +60,8 @@ fn main() {
         };
         rd.use_shader(basic);
 
+        //1:1 pixel mapping projection matrix.
+        let projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
         let location = gl.get_uniform_location(basic, "projection").unwrap();
         gl.uniform_matrix_4_f32_slice(Some(&location), false, projection.as_slice());
 
@@ -72,7 +74,7 @@ fn main() {
             25.0,
             25.0,
             1.0,
-            (0.0, 0.0, 0.0, 0.0).into(),
+            (1.0, 1.0, 1.0, 1.0).into(),
         );
 
         // draw_character(
@@ -112,7 +114,8 @@ fn main() {
         let uv2 = Vec2::new(0.0, 0.0);
         let uv3 = Vec2::new(1.0, 0.0);
 
-        rd.draw_rectangle(-0.5, -0.5, 1.0, 1.0, color);
+        // rd.draw_rectangle(-0.5, -0.5, 1.0, 1.0, color);
+        // rd.draw_rectangle(0., 0., 120.0, 120.0, color);
 
         // rd.triangle(
         //     TOP_RIGHT,

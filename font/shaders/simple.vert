@@ -9,9 +9,9 @@ uniform mat4 projection;
 out vec4 out_color;
 out vec2 out_uv;
 
-void main()
-{
-	gl_Position = projection * vec4(position, 0.0, 1.0);
+void main() {
+    gl_Position = projection * vec4(position, 0.0, 1.0);
+    // gl_Position = vec4(position, 0.0, 1.0);
     out_color = color;
     out_uv = uv;
 }

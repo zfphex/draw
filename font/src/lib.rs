@@ -108,6 +108,8 @@ pub unsafe fn texture() -> NativeTexture {
     let im = image::load_from_memory(bytes).unwrap();
     let texture = gl.create_texture().unwrap();
 
+    gl.active_texture(glow::TEXTURE0);
+    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
     gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
     gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
     gl.tex_parameter_i32(
@@ -136,6 +138,9 @@ pub unsafe fn texture() -> NativeTexture {
 
 #[macro_export]
 macro_rules! vertex {
+    () => {
+        Vertex::default()
+    };
     ($position:expr) => {
         Vertex {
             position: $position.into(),
@@ -143,32 +148,18 @@ macro_rules! vertex {
             color: Vec4::default(),
         }
     };
-    ($position:expr, $uv:expr) => {
+    ($position:expr, $color:expr) => {
         Vertex {
             position: $position.into(),
-            uv: $uv.into(),
-            color: Vec4::default(),
+            uv: Vec2::default(),
+            color: $color,
         }
     };
-    ($position:expr, $uv:expr, $color:expr) => {
+    ($position:expr, $color:expr, $uv:expr) => {
         Vertex {
             position: $position.into(),
+            color: $color.into(),
             uv: $uv.into(),
-            color: $color.into(),
-        }
-    };
-    ($p0:expr, $p1:expr, $uv0:expr, $uv1:expr, $color:expr) => {
-        Vertex {
-            position: ($p0, $p1).into(),
-            uv: ($uv0, $uv1).into(),
-            color: $color.into(),
-        }
-    };
-    ($p0:expr, $p1:expr, $uv0:expr, $uv1:expr, $r:expr, $g:expr, $b:expr, $a:expr) => {
-        Vertex {
-            position: ($p0, $p1).into(),
-            uv: ($uv0, $uv1).into(),
-            color: ($r, $g, $b, $a).into(),
         }
     };
 }
@@ -176,10 +167,26 @@ macro_rules! vertex {
 //I think rust packed my struct in a weird way.
 //So align won't work unless you use `repr(C)`.
 #[repr(C)]
+#[derive(Default)]
 pub struct Vertex {
     pub position: Vec2,
     pub uv: Vec2,
     pub color: Vec4,
+}
+
+impl Vertex {
+    pub fn position(mut self, position: Vec2) -> Self {
+        self.position = position;
+        self
+    }
+    pub fn uv(mut self, uv: Vec2) -> Self {
+        self.uv = uv;
+        self
+    }
+    pub fn color(mut self, color: Vec4) -> Self {
+        self.color = color;
+        self
+    }
 }
 
 #[inline]
@@ -207,8 +214,8 @@ impl Renderer {
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
 
-            // gl.enable(glow::BLEND);
-            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+            gl.enable(glow::BLEND);
+            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
 
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {
@@ -330,13 +337,12 @@ impl Renderer {
         //Not sure how to do it. Right now it sucks bad.
         #[rustfmt::skip]
         let vertices = [
-            vertex!(x    , y    , 0.0, 0.0, color),
-            vertex!(x + w, y    , 1.0, 0.0, color),
-            vertex!(x + w, y + h, 1.0, 1.0, color),
-
-            vertex!(x + w, y + h, 1.0, 1.0, color),
-            vertex!(x    , y + h, 0.0, 1.0, color),
-            vertex!(x    , y    , 0.0, 0.0, color),
+            vertex!((x    , y    ), color, (0.0, 0.0)),
+            vertex!((x + w, y    ), color, (1.0, 0.0)),
+            vertex!((x + w, y + h), color, (1.0, 1.0)),
+            vertex!((x + w, y + h), color, (1.0, 1.0)),
+            vertex!((x    , y + h), color, (0.0, 1.0)),
+            vertex!((x    , y    ), color, (0.0, 0.0))
         ];
         self.vertices.extend(vertices);
     }
