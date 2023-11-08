@@ -214,8 +214,8 @@ impl Renderer {
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
 
-            gl.enable(glow::BLEND);
-            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+            // gl.enable(glow::BLEND);
+            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
 
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {

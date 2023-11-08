@@ -2,7 +2,7 @@
 use font::*;
 use glfw::{Action, Key, Monitor, WindowEvent};
 use glow::HasContext;
-use std::mem::{size_of, MaybeUninit};
+use std::mem::MaybeUninit;
 extern crate nalgebra_glm as glm;
 
 //https://www.khronos.org/opengl/wiki/Face_Culling
@@ -41,7 +41,6 @@ fn main() {
         }));
         let gl = GL.assume_init_ref();
 
-        println!("Projection: 0 - {width}, 0 - {height}");
         let mut rd = Renderer::new(gl);
 
         // let font = create_program(
@@ -73,7 +72,6 @@ fn main() {
             "This is sample text",
             25.0,
             25.0,
-            1.0,
             (1.0, 1.0, 1.0, 1.0).into(),
         );
 

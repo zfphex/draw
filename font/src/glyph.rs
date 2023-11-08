@@ -7,6 +7,7 @@ pub use glow::HasContext;
 const GLYPH_METRICS_CAPACITY: usize = 128;
 const FONT_SIZE: u32 = 48;
 
+///https://learnopengl.com/img/in-practice/glyph.png
 #[derive(Debug, Clone, Default)]
 pub struct Glyph {
     /// Padding
@@ -29,26 +30,20 @@ pub struct Atlas {
 }
 
 impl Atlas {
-    pub fn draw_text(
-        &self,
-        rd: &mut Renderer,
-        text: &str,
-        mut x: f32,
-        y: f32,
-        scale: f32,
-        color: Vec4,
-    ) {
+    //TODO: Figure out how to scale a texture.
+    pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, y: f32, color: Vec4) {
         for c in text.chars() {
             let ch = &self.glyphs[c as usize];
 
-            let xpos = x + ch.bearing.x * scale;
-            let ypos = y - (ch.height - ch.bearing.y) * scale;
+            let xpos = x + ch.bearing.x;
+            let ypos = y - (ch.height - ch.bearing.y);
 
-            let w = ch.width * scale;
-            let h = ch.height * scale;
+            let w = ch.width;
+            let h = ch.height;
 
-            //If the y uv is 1 it's top if it's 0 it's bottom.
+            //The y UV is flipped here. !uv.y
             let uv = ch.uv;
+            let uv_right = uv + (w / self.width as f32);
 
             //Top left
             //Bottom left
@@ -58,9 +53,6 @@ impl Atlas {
             //Top right
             //Top left
 
-            let uv_right = uv + (w / self.width as f32);
-
-            dbg!(w / self.width as f32);
             #[rustfmt::skip]
             let vert = [
                 vertex!((xpos, ypos + h),     color, (uv, 0.0)),
@@ -71,20 +63,10 @@ impl Atlas {
                 vertex!((xpos, ypos + h),     color, (uv, 0.0)),
             ];
 
-            // #[rustfmt::skip]
-            // let vert = [
-            //     vertex!((xpos, ypos + h),     color, UV_TOP_LEFT),
-            //     vertex!((xpos, ypos),         color, UV_BOTTOM_LEFT),
-            //     vertex!((xpos + w, ypos),     color, UV_BOTTOM_RIGHT),
-            //     vertex!((xpos + w, ypos),     color, UV_BOTTOM_RIGHT),
-            //     vertex!((xpos + w, ypos + h), color, UV_TOP_RIGHT),
-            //     vertex!((xpos, ypos + h),     color, UV_TOP_LEFT),
-            // ];
-
             rd.vertices.extend(vert);
 
             // Advance cursors for the next glyph
-            x += (ch.advance.x) as f32 * scale;
+            x += (ch.advance.x) as f32;
         }
     }
 }
@@ -96,98 +78,101 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     let face = lib.new_memory_face2(font, 0).unwrap();
     face.set_pixel_sizes(0, FONT_SIZE).unwrap();
 
-    let texture = unsafe { gl.create_texture().unwrap() };
-    let mut atlas: Atlas = Atlas {
-        width: 0,
-        height: 0,
-        texture,
-        #[allow(invalid_value)]
-        glyphs: std::mem::zeroed(),
-    };
+    let mut width = 0;
+    let mut height = 0;
+    #[allow(invalid_value)]
+    let mut glyphs: [Glyph; 128] = std::mem::zeroed();
 
     //Load symbols, numbers and letters.
     for i in 32..127 {
         face.load_char(i, LoadFlag::RENDER).unwrap();
         let glyph = face.glyph();
+        let bitmap = glyph.bitmap();
 
-        atlas.width += glyph.bitmap().width();
+        width += bitmap.width();
 
-        if atlas.height < glyph.bitmap().rows() {
-            atlas.height = glyph.bitmap().rows();
+        if height < bitmap.rows() {
+            height = bitmap.rows();
         }
 
         glyph.render_glyph(RenderMode::Normal).unwrap();
         //Bitshift by 6 to get value in pixels. (2^6 = 64, advance is 1/64 pixels)
-        atlas.glyphs[i].advance = Vec2::new(
+        glyphs[i].advance = Vec2::new(
             (glyph.advance().x >> 6) as f32,
             (glyph.advance().y >> 6) as f32,
         );
-        atlas.glyphs[i].width = glyph.bitmap().width() as f32;
-        atlas.glyphs[i].height = glyph.bitmap().rows() as f32;
-        atlas.glyphs[i].bearing = Vec2::new(glyph.bitmap_left() as f32, glyph.bitmap_top() as f32);
-        atlas.glyphs[i].buffer = glyph.bitmap().buffer().to_vec();
+        glyphs[i].width = bitmap.width() as f32;
+        glyphs[i].height = bitmap.rows() as f32;
+        glyphs[i].bearing = Vec2::new(glyph.bitmap_left() as f32, glyph.bitmap_top() as f32);
+        glyphs[i].buffer = bitmap.buffer().to_vec();
     }
 
-    unsafe {
-        gl.active_texture(glow::TEXTURE0);
-        gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_MAG_FILTER,
-            glow::LINEAR as i32,
-        );
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_MIN_FILTER,
-            glow::LINEAR as i32,
-        );
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_WRAP_S,
-            glow::CLAMP_TO_EDGE as i32,
-            // glow::MIRRORED_REPEAT as i32,
-        );
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_WRAP_T,
-            glow::CLAMP_TO_EDGE as i32,
-            // glow::MIRRORED_REPEAT as i32,
-        );
-        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
-        gl.tex_image_2d(
+    let texture = unsafe { gl.create_texture().unwrap() };
+    gl.active_texture(glow::TEXTURE0);
+    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MAG_FILTER,
+        glow::LINEAR as i32,
+    );
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MIN_FILTER,
+        glow::LINEAR as i32,
+    );
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_WRAP_S,
+        glow::CLAMP_TO_EDGE as i32,
+    );
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_WRAP_T,
+        glow::CLAMP_TO_EDGE as i32,
+    );
+    gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
+    //If we don't zero this texture, bad things will happen.
+    gl.tex_image_2d(
+        glow::TEXTURE_2D,
+        0,
+        glow::RED as i32,
+        width as i32,
+        height as i32,
+        0,
+        glow::RED,
+        glow::UNSIGNED_BYTE,
+        Some(&vec![0; (width * height) as usize]),
+        // None,
+    );
+
+    let mut x = 0;
+
+    for i in 32..127 {
+        glyphs[i].uv = x as f32 / width as f32;
+
+        let slice = glyphs[i].buffer.as_slice();
+
+        gl.tex_sub_image_2d(
             glow::TEXTURE_2D,
             0,
-            glow::RED as i32,
-            atlas.width as i32,
-            atlas.height as i32,
+            x,
             0,
+            glyphs[i].width as i32,
+            glyphs[i].height as i32,
             glow::RED,
             glow::UNSIGNED_BYTE,
-            None,
+            glow::PixelUnpackData::Slice(slice),
         );
 
-        let mut x = 0;
-        for i in 32..127 {
-            atlas.glyphs[i].uv = x as f32 / atlas.width as f32;
-            let slice = &atlas.glyphs[i].buffer;
-
-            gl.tex_sub_image_2d(
-                glow::TEXTURE_2D,
-                0,
-                x,
-                0,
-                atlas.glyphs[i].width as i32,
-                atlas.glyphs[i].height as i32,
-                glow::RED,
-                glow::UNSIGNED_BYTE,
-                glow::PixelUnpackData::Slice(slice),
-            );
-
-            x += atlas.glyphs[i].width as i32;
-        }
+        x += glyphs[i].width as i32;
     }
 
-    atlas
+    Atlas {
+        width,
+        height,
+        texture,
+        glyphs,
+    }
 }
 
 pub const RED: Vec4 = Vec4::new(1.0, 0.0, 0.0, 1.0);
