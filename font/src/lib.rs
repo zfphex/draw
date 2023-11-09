@@ -10,6 +10,9 @@ pub mod math;
 pub use glyph::*;
 pub use math::*;
 
+#[cfg(test)]
+mod tests;
+
 pub static mut GL: MaybeUninit<Context> = MaybeUninit::uninit();
 
 pub const TOP_LEFT: Vec2 = Vec2::new(-0.5, 0.5);
@@ -20,6 +23,83 @@ pub const UV_TOP_LEFT: Vec2 = Vec2::new(0.0, 1.0);
 pub const UV_BOTTOM_LEFT: Vec2 = Vec2::new(0.0, 0.0);
 pub const UV_TOP_RIGHT: Vec2 = Vec2::new(1.0, 1.0);
 pub const UV_BOTTOM_RIGHT: Vec2 = Vec2::new(1.0, 0.0);
+
+pub fn create_window() -> (
+    i32,
+    i32,
+    glfw::Window,
+    std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    glfw::Glfw,
+    &'static glow::Context,
+) {
+    use glfw::Context;
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    glfw.window_hint(glfw::WindowHint::OpenGlDebugContext(true));
+    let monitor = glfw::Monitor::from_primary();
+    let video_mode = monitor.get_video_mode().unwrap();
+    let (width, height) = (
+        (video_mode.width as f32 / 1.5) as i32,
+        (video_mode.height as f32 / 1.5) as i32,
+    );
+    let (mut window, events) = glfw
+        .create_window(
+            width as u32,
+            height as u32,
+            "Triangle",
+            glfw::WindowMode::Windowed,
+        )
+        .expect("Failed to create GLFW window.");
+    window.set_resizable(true);
+    window.set_key_polling(true);
+    window.make_current();
+
+    assert!(window.is_opengl_debug_context());
+    assert!(window.is_resizable());
+
+    let gl = unsafe {
+        GL = MaybeUninit::new(glow::Context::from_loader_function(|s| {
+            window.get_proc_address(s) as *const _
+        }));
+        GL.assume_init_ref()
+    };
+
+    (width, height, window, events, glfw, gl)
+}
+
+//TODO: Remove
+pub unsafe fn container() -> glow::NativeTexture {
+    let gl = GL.assume_init_ref();
+    let bytes = include_bytes!("../container.jpg");
+    let im = image::load_from_memory(bytes).unwrap();
+    let texture = gl.create_texture().unwrap();
+
+    gl.active_texture(glow::TEXTURE0);
+    gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MIN_FILTER,
+        glow::LINEAR as i32,
+    );
+    gl.tex_parameter_i32(
+        glow::TEXTURE_2D,
+        glow::TEXTURE_MAG_FILTER,
+        glow::LINEAR as i32,
+    );
+    gl.tex_image_2d(
+        glow::TEXTURE_2D,
+        0,
+        glow::RGB as i32,
+        im.width() as i32,
+        im.height() as i32,
+        0,
+        glow::RGB,
+        glow::UNSIGNED_BYTE,
+        Some(im.as_bytes()),
+    );
+    texture
+}
 
 #[track_caller]
 pub fn check_error(gl: &Context) {
@@ -56,7 +136,7 @@ macro_rules! shader {
 
             let gl = $crate::GL.assume_init_ref();
             let mut stride = 0;
-            let mut offset = 0;
+            let mut _offset = 0;
 
             $(
                 stride += std::mem::size_of::<$type>();
@@ -65,8 +145,8 @@ macro_rules! shader {
             $(
                 let n = std::mem::size_of::<$type>() / std::mem::size_of::<f32>();
                 gl.enable_vertex_attrib_array($position);
-                gl.vertex_attrib_pointer_f32($position, n as i32, glow::FLOAT, false, stride as i32, offset as i32);
-                offset += std::mem::size_of::<$type>();
+                gl.vertex_attrib_pointer_f32($position, n as i32, glow::FLOAT, false, stride as i32, _offset as i32);
+                _offset += std::mem::size_of::<$type>();
             )*
 
             let program = gl.create_program().unwrap();
@@ -133,7 +213,7 @@ macro_rules! vertex {
 //I think rust packed my struct in a weird way.
 //So align won't work unless you use `repr(C)`.
 #[repr(C)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Vertex {
     pub position: Vec2,
     pub uv: Vec2,
@@ -165,6 +245,18 @@ pub fn buffer(vertices: &[f32]) -> &[u8] {
     }
 }
 
+#[inline]
+pub fn hex(hex: u32) -> Vec4 {
+    let bytes: [u8; 4] = hex.to_be_bytes();
+
+    Vec4::new(
+        bytes[1] as f32 / 255.,
+        bytes[2] as f32 / 255.,
+        bytes[3] as f32 / 255.,
+        1.0,
+    )
+}
+
 pub struct Renderer {
     pub gl: &'static glow::Context,
     pub vertices: Vec<Vertex>,
@@ -174,6 +266,8 @@ pub struct Renderer {
     pub width: i32,
     pub height: i32,
     pub projection: glm::Mat4x4,
+    pub projection_location: NativeUniformLocation,
+    pub shader: NativeProgram,
 }
 
 impl Renderer {
@@ -181,11 +275,6 @@ impl Renderer {
         unsafe {
             gl.enable(glow::DEBUG_OUTPUT);
             gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
-
-            // gl.enable(glow::DEPTH_TEST);
-
-            // gl.enable(glow::BLEND);
-            // gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
 
             gl.debug_message_callback(|source, ty, id, severity, msg| {
                 if id == 131169 || id == 131185 || id == 131218 || id == 131204 {
@@ -250,7 +339,6 @@ impl Renderer {
 
             //1:1 pixel mapping projection matrix. Bottom left origin.
             let projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
-            // let projection = glm::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
             let location = gl.get_uniform_location(basic, "projection").unwrap();
             gl.uniform_matrix_4_f32_slice(Some(&location), false, projection.as_slice());
 
@@ -263,6 +351,8 @@ impl Renderer {
                 width,
                 height,
                 projection,
+                projection_location: location,
+                shader: basic,
             }
         }
     }
@@ -295,7 +385,7 @@ impl Renderer {
 
     /// Draws a solid rectangle with its top-left corner at `[x, y]` with size `[w, h]` (width going to
     /// the right, height going down).
-    pub fn quad(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
+    pub fn texture(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
         //Bottom left, bottom right, top right.
         //Top right, top left, bottom left.
 
@@ -323,8 +413,38 @@ impl Renderer {
         self.vertices.extend(vertices);
     }
 
-    pub fn use_shader(&self, program: NativeProgram) {
-        unsafe { self.gl.use_program(Some(program)) };
+    pub fn quad(&mut self, x: f32, y: f32, w: f32, h: f32, color: Vec4) {
+        //Bottom left, bottom right, top right.
+        //Top right, top left, bottom left.
+        #[rustfmt::skip]
+        let vertices = [
+            vertex!((x    , y    ), color, (0.0, 0.0)),
+            vertex!((x + w, y    ), color, (0.0, 0.0)),
+            vertex!((x + w, y + h), color, (0.0, 0.0)),
+            vertex!((x + w, y + h), color, (0.0, 0.0)),
+            vertex!((x    , y + h), color, (0.0, 0.0)),
+            vertex!((x    , y    ), color, (0.0, 0.0))
+        ];
+        self.vertices.extend(vertices);
+    }
+
+    pub fn use_shader(&mut self, program: NativeProgram) {
+        unsafe {
+            self.shader = program;
+            self.gl.use_program(Some(self.shader));
+
+            //Update the projection matrix location.
+            self.projection_location = self
+                .gl
+                .get_uniform_location(self.shader, "projection")
+                .unwrap();
+
+            self.gl.uniform_matrix_4_f32_slice(
+                Some(&self.projection_location),
+                false,
+                self.projection.as_slice(),
+            );
+        }
     }
 
     pub fn clear(&self) {
@@ -360,8 +480,31 @@ impl Renderer {
 
     pub fn update(&mut self, width: i32, height: i32) {
         unsafe {
-            // self.projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            self.projection = glm::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+            self.gl.uniform_matrix_4_f32_slice(
+                Some(&self.projection_location),
+                false,
+                self.projection.as_slice(),
+            );
             self.gl.viewport(0, 0, width, height);
         }
+    }
+
+    pub fn enable_blend(&mut self) {
+        unsafe {
+            self.gl.enable(glow::BLEND);
+            self.gl
+                .blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_CONSTANT_ALPHA);
+        }
+    }
+
+    pub fn disable_blend(&mut self) {
+        unsafe {
+            self.gl.disable(glow::BLEND);
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.vertices.clear();
     }
 }
