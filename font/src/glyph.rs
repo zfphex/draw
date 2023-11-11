@@ -33,12 +33,16 @@ impl Atlas {
     //It does seem like the projection is squishing the font.
     //The big letters like j seem fine but letters like e are squished.
     //I should probably align everything in the texture and save myself the trouble.
-    pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, y: f32, color: Vec4) {
+    pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, mut y: f32, color: Vec4) {
         for c in text.chars() {
             let ch = match self.glyphs.get(c as usize) {
                 Some(ch) => ch,
                 None => &self.glyphs['?' as usize],
             };
+
+            if ch.width == 0.0 || ch.height == 0.0 {
+                continue;
+            }
 
             let xpos = x + ch.bearing.x;
             let ypos = y - (ch.height - ch.bearing.y);
@@ -51,7 +55,7 @@ impl Atlas {
             //~~The y UV is flipped here. !uv.y~~
             let uv_left = ch.uv;
             let uv_right = ch.uv + (ch.width / self.width as f32);
-            let uv_top = 1.0;
+            let uv_top = h / self.height as f32;
             let uv_bottom = 0.0;
 
             //Top left, Bottom left, Bottom right
@@ -71,6 +75,8 @@ impl Atlas {
 
             // Advance cursors for the next glyph
             x += (ch.advance.x) as f32;
+            //There are no characters with vertical advance without using the `VerticalLayout` flag.
+            y += (ch.advance.y) as f32;
         }
     }
 }
@@ -109,10 +115,6 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         glyphs[i].height = bitmap.rows() as f32;
         glyphs[i].bearing = Vec2::new(glyph.bitmap_left() as f32, glyph.bitmap_top() as f32);
         glyphs[i].buffer = bitmap.buffer().to_vec();
-        // println!(
-        //     "{} x: {} y: {} height: {}",
-        //     i as u8 as char, glyphs[i].bearing.x, glyphs[i].bearing.y, glyphs[i].height
-        //);
     }
 
     let texture = unsafe { gl.create_texture().unwrap() };

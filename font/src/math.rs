@@ -45,3 +45,47 @@ impl Into<Vec4> for (f32, f32, f32, f32) {
         }
     }
 }
+
+#[macro_export]
+macro_rules! vec4 {
+    () => {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 0.0,
+        }
+    };
+    ($splat:expr) => {
+        Self {
+            x: $splat,
+            y: $spalt,
+            z: $splat,
+            w: $splat,
+        }
+    };
+    ($x:expr, $y:expr, $z:expr, $w: expr) => {
+        Self {
+            x: $x,
+            y: $y,
+            z: $z,
+            w: $w,
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! vec2 {
+    () => {
+        Self { x: 0.0, y: 0.0 }
+    };
+    ($splat:expr) => {
+        Self {
+            x: $splat,
+            y: $spalt,
+        }
+    };
+    ($x:expr, $y:expr) => {
+        Self { x: $x, y: $y }
+    };
+}

@@ -14,22 +14,22 @@ fn main() {
         let atlas = load_font(&rd, include_bytes!("../CascadiaMono.ttf"));
 
         rd.enable_blend();
-        rd.texture(
-            0.0,
-            0.0,
-            width as f32,
-            atlas.height as f32,
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-        );
-
-        // atlas.draw_text(
-        //     &mut rd,
-        //     // "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        //     "abcdefghijklmnopqrstuvwxyz",
-        //     25.0,
-        //     25.0,
-        //     (1.0, 1.0, 1.0, 1.0).into(),
+        // rd.texture(
+        //     0.0,
+        //     0.0,
+        //     width as f32,
+        //     atlas.height as f32,
+        //     Vec4::new(1.0, 1.0, 1.0, 1.0),
         // );
+
+        atlas.draw_text(
+            &mut rd,
+            // "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "abcdefghijklmnopqrstuvwxyz",
+            25.0,
+            25.0,
+            (1.0, 1.0, 1.0, 1.0).into(),
+        );
 
         let (width, height) = window.get_framebuffer_size();
 
