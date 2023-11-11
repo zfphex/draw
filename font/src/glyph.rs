@@ -1,12 +1,17 @@
 use crate::*;
 use freetype::face::LoadFlag;
-use freetype::{Library, RenderMode};
+use freetype::ffi::FT_LCD_FILTER_DEFAULT;
+use freetype::{Error, FtResult, Library, RenderMode};
 
+use freetype_sys::{
+    FT_Err_Ok, FT_Library_SetLcdFilter, FT_Load_Char, FT_LOAD_RENDER, FT_RENDER_MODE_SDF,
+};
 pub use glow::HasContext;
 
 const FONT_SIZE: u32 = 48;
 
 ///https://learnopengl.com/img/in-practice/glyph.png
+///https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Text_Rendering_02
 #[derive(Debug, Clone, Default)]
 pub struct Glyph {
     /// Padding
@@ -34,14 +39,16 @@ impl Atlas {
     //The big letters like j seem fine but letters like e are squished.
     //I should probably align everything in the texture and save myself the trouble.
     pub fn draw_text(&self, rd: &mut Renderer, text: &str, mut x: f32, mut y: f32, color: Vec4) {
+        let start_x = x;
         for c in text.chars() {
             let ch = match self.glyphs.get(c as usize) {
                 Some(ch) => ch,
                 None => &self.glyphs['?' as usize],
             };
 
-            if ch.width == 0.0 || ch.height == 0.0 {
-                continue;
+            if c == '\n' {
+                y -= self.height as f32;
+                x = start_x;
             }
 
             let xpos = x + ch.bearing.x;
@@ -60,7 +67,6 @@ impl Atlas {
 
             //Top left, Bottom left, Bottom right
             //Bottom right, Top right, Top left
-
             #[rustfmt::skip]
             let vert = [
                 vertex!((xpos, ypos + h),     color, (uv_left, uv_bottom)),
@@ -85,7 +91,9 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     let gl = &rd.gl;
 
     let lib = Library::init().unwrap();
-    let face = lib.new_memory_face2(font, 0).unwrap();
+    // FT_Library_SetLcdFilter(lib.raw(), FT_LCD_FILTER_DEFAULT);
+
+    let mut face = lib.new_memory_face2(font, 0).unwrap();
     face.set_pixel_sizes(0, FONT_SIZE).unwrap();
 
     let mut width = 0;
@@ -95,7 +103,18 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
 
     //Load symbols, numbers and letters.
     for i in 32..127 {
-        face.load_char(i, LoadFlag::RENDER).unwrap();
+        // face.load_char(i, LoadFlag::RENDER).unwrap();
+        let err = FT_Load_Char(
+            face.raw_mut(),
+            i as u32,
+            FT_LOAD_RENDER | FT_RENDER_MODE_SDF as i32,
+            // FT_LOAD_RENDER,
+        );
+
+        if err != FT_Err_Ok {
+            panic!("{}", Error::from(err));
+        }
+
         let glyph = face.glyph();
         let bitmap = glyph.bitmap();
 
@@ -106,6 +125,7 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         }
 
         glyph.render_glyph(RenderMode::Normal).unwrap();
+
         //Bitshift by 6 to get value in pixels. (2^6 = 64, advance is 1/64 pixels)
         glyphs[i].advance = Vec2::new(
             (glyph.advance().x >> 6) as f32,
@@ -115,11 +135,15 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         glyphs[i].height = bitmap.rows() as f32;
         glyphs[i].bearing = Vec2::new(glyph.bitmap_left() as f32, glyph.bitmap_top() as f32);
         glyphs[i].buffer = bitmap.buffer().to_vec();
+        assert_eq!(
+            glyphs[i].buffer.len() as f32,
+            glyphs[i].width * glyphs[i].height
+        );
     }
 
     let texture = unsafe { gl.create_texture().unwrap() };
-    gl.active_texture(glow::TEXTURE0);
     gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+
     gl.tex_parameter_i32(
         glow::TEXTURE_2D,
         glow::TEXTURE_MAG_FILTER,
@@ -141,6 +165,11 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         glow::CLAMP_TO_EDGE as i32,
     );
     gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
+
+    debug_assert!(width >= 0);
+    debug_assert!(width < glow::MAX_TEXTURE_SIZE as i32);
+    debug_assert!(height < glow::MAX_TEXTURE_SIZE as i32);
+
     //If we don't zero this texture, bad things will happen.
     gl.tex_image_2d(
         glow::TEXTURE_2D,
@@ -151,8 +180,8 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         0,
         glow::RED,
         glow::UNSIGNED_BYTE,
-        Some(&vec![0; (width * height) as usize]),
-        // None,
+        // Some(&vec![0; (width * height) as usize]),
+        None,
     );
 
     let mut x = 0;
@@ -160,8 +189,17 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
     for i in 32..127 {
         glyphs[i].uv = x as f32 / width as f32;
 
-        let slice = glyphs[i].buffer.as_slice();
+        if x + glyphs[i].width as i32 > glow::TEXTURE_WIDTH as i32
+            || 0 + glyphs[i].height as i32 > glow::TEXTURE_HEIGHT as i32
+        {
+            panic!("texture is too big!");
+        }
 
+        if (glyphs[i].width as i32) < 0 || (glyphs[i].height as i32) < 0 {
+            panic!("too small!");
+        }
+
+        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
         gl.tex_sub_image_2d(
             glow::TEXTURE_2D,
             0,
@@ -171,8 +209,10 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
             glyphs[i].height as i32,
             glow::RED,
             glow::UNSIGNED_BYTE,
-            glow::PixelUnpackData::Slice(slice),
+            glow::PixelUnpackData::Slice(&glyphs[i].buffer),
         );
+
+        check_error(gl);
 
         x += glyphs[i].width as i32;
     }

@@ -63,6 +63,8 @@ pub fn create_window() -> (
         GL.assume_init_ref()
     };
 
+    println!("Loaded OpenGL {:?}", gl.version());
+
     (width, height, window, events, glfw, gl)
 }
 

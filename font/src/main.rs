@@ -25,9 +25,11 @@ fn main() {
         atlas.draw_text(
             &mut rd,
             // "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            "abcdefghijklmnopqrstuvwxyz",
+            // "abcdefghijklmnopqrstuvwxyz",
+            // "Let's check out this epic text! Wow it works so well.",
+            "This is the first line.\nThis is the second line!\n\nThis is the third line.",
             25.0,
-            25.0,
+            200.0,
             (1.0, 1.0, 1.0, 1.0).into(),
         );
 

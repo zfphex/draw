@@ -206,6 +206,7 @@ name = "font"
 version = "0.1.0"
 dependencies = [
  "freetype-rs",
+ "freetype-sys",
  "glfw",
  "glow",
  "image",
