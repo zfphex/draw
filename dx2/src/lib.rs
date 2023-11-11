@@ -55,6 +55,7 @@ use makepad_windows::{
 };
 
 use glam::DVec2;
+use win_window::Window;
 
 #[derive(Clone)]
 pub struct D3D11 {
@@ -62,10 +63,17 @@ pub struct D3D11 {
     pub context: ID3D11DeviceContext,
     pub query: ID3D11Query,
     pub factory: IDXGIFactory2,
+    pub hwnd: isize,
+    pub is_in_resize: bool,
+    pub render_target_view: Option<ID3D11RenderTargetView>,
+    pub swap_texture: Option<ID3D11Texture2D>,
+    pub alloc_size: DVec2,
+    pub first_draw: bool,
+    pub swap_chain: IDXGISwapChain1,
 }
 
 impl D3D11 {
-    pub fn new() -> D3D11 {
+    pub fn new(hwnd: isize, width: u32, height: u32) -> D3D11 {
         unsafe {
             let factory: IDXGIFactory2 = CreateDXGIFactory2(0).unwrap();
             let adapter = factory.EnumAdapters(0).unwrap();
@@ -100,15 +108,57 @@ impl D3D11 {
 
             let query = query.unwrap();
 
+            let sc_desc = DXGI_SWAP_CHAIN_DESC1 {
+                AlphaMode: DXGI_ALPHA_MODE_IGNORE,
+                BufferCount: 2,
+                Width: width,
+                Height: height,
+                Format: DXGI_FORMAT_B8G8R8A8_UNORM,
+                Flags: 0,
+                BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                SampleDesc: DXGI_SAMPLE_DESC {
+                    Count: 1,
+                    Quality: 0,
+                },
+                Scaling: DXGI_SCALING_NONE,
+                Stereo: BOOL(0),
+                SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
+            };
+
+            let swap_chain = factory
+                .CreateSwapChainForHwnd(&device, HWND(hwnd), &sc_desc, None, None)
+                .unwrap();
+
+            let swap_texture = swap_chain.GetBuffer(0).unwrap();
+            let mut render_target_view = None;
+            device
+                .CreateRenderTargetView(&swap_texture, None, Some(&mut render_target_view))
+                .unwrap();
+            swap_chain
+                .SetBackgroundColor(&mut DXGI_RGBA {
+                    r: 0.3,
+                    g: 0.3,
+                    b: 0.3,
+                    a: 1.0,
+                })
+                .unwrap();
+
             D3D11 {
                 device,
                 context,
                 factory,
                 query,
+                first_draw: true,
+                is_in_resize: false,
+                hwnd,
+                // alloc_size: wg.inner_size,
+                alloc_size: DVec2::default(),
+                swap_texture: Some(swap_texture),
+                render_target_view,
+                swap_chain,
             }
         }
     }
-
     pub fn start_querying(&self) {
         // QUERY_EVENT signals when rendering is complete
         unsafe { self.context.End(&self.query) };
@@ -126,95 +176,15 @@ impl D3D11 {
         };
         hresult != S_FALSE
     }
-}
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WindowGeom {
-    pub dpi_factor: f64,
-    pub can_fullscreen: bool,
-    pub xr_is_presenting: bool,
-    pub is_fullscreen: bool,
-    pub is_topmost: bool,
-    pub position: DVec2,
-    pub inner_size: DVec2,
-    pub outer_size: DVec2,
-}
-
-pub struct D3D11Window {
-    pub hwnd: isize,
-    pub is_in_resize: bool,
-    pub render_target_view: Option<ID3D11RenderTargetView>,
-    pub swap_texture: Option<ID3D11Texture2D>,
-    pub alloc_size: DVec2,
-    pub first_draw: bool,
-    pub swap_chain: IDXGISwapChain1,
-}
-
-impl D3D11Window {
-    pub fn new(
-        hwnd: isize,
-        width: u32,
-        height: u32,
-        d3d11_cx: &D3D11,
-        position: Option<DVec2>,
-    ) -> D3D11Window {
-        // create window, and then initialize it; this is needed because
-        // GWLP_USERDATA needs to reference a stable and existing window
-
-        // let mut win32_window = Box::new(Win32Window::new(window_id, title, position));
-        // win32_window.init(inner_size);
-        // let wg = win32_window.get_window_geom();
-
-        let sc_desc = DXGI_SWAP_CHAIN_DESC1 {
-            AlphaMode: DXGI_ALPHA_MODE_IGNORE,
-            BufferCount: 2,
-            Width: width,
-            Height: height,
-            Format: DXGI_FORMAT_B8G8R8A8_UNORM,
-            Flags: 0,
-            BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            SampleDesc: DXGI_SAMPLE_DESC {
-                Count: 1,
-                Quality: 0,
-            },
-            Scaling: DXGI_SCALING_NONE,
-            Stereo: BOOL(0),
-            SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
-        };
-
+    pub fn clear(&self) {
         unsafe {
-            let swap_chain = d3d11_cx
-                .factory
-                .CreateSwapChainForHwnd(&d3d11_cx.device, HWND(hwnd), &sc_desc, None, None)
-                .unwrap();
-
-            let swap_texture = swap_chain.GetBuffer(0).unwrap();
-            let mut render_target_view = None;
-            d3d11_cx
-                .device
-                .CreateRenderTargetView(&swap_texture, None, Some(&mut render_target_view))
-                .unwrap();
-            swap_chain
-                .SetBackgroundColor(&mut DXGI_RGBA {
-                    r: 0.3,
-                    g: 0.3,
-                    b: 0.3,
-                    a: 1.0,
-                })
-                .unwrap();
-            D3D11Window {
-                first_draw: true,
-                is_in_resize: false,
-                hwnd,
-                // alloc_size: wg.inner_size,
-                alloc_size: DVec2::default(),
-                swap_texture: Some(swap_texture),
-                render_target_view: render_target_view,
-                swap_chain: swap_chain,
-            }
+            self.context.ClearRenderTargetView(
+                self.render_target_view.as_ref().unwrap(),
+                &[1.0, 0.6, 0.6, 1.0],
+            );
         }
     }
-
     pub fn start_resize(&mut self) {
         self.is_in_resize = true;
     }
