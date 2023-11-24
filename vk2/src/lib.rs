@@ -3,7 +3,7 @@ use ash::{
     *,
 };
 use mini::*;
-use win_window::*;
+use window::*;
 
 pub unsafe fn str_from_i8(slice: &[i8]) -> Result<&str, std::str::Utf8Error> {
     let (end, _) = slice
@@ -26,7 +26,7 @@ pub unsafe fn create_surface(
     let surface = win32_surface_fn
         .create_win32_surface(
             &vk::Win32SurfaceCreateInfoKHR::default()
-                .hinstance(window.hinstance as isize)
+                // .hinstance(window.hinstance as isize)
                 .hwnd(window.hwnd as isize),
             None,
         )

@@ -107,8 +107,8 @@ pub unsafe fn load_font(rd: &Renderer, font: &[u8]) -> Atlas {
         let err = FT_Load_Char(
             face.raw_mut(),
             i as u32,
-            FT_LOAD_RENDER | FT_RENDER_MODE_SDF as i32,
-            // FT_LOAD_RENDER,
+            // FT_LOAD_RENDER | FT_RENDER_MODE_SDF as i32,
+            FT_LOAD_RENDER,
         );
 
         if err != FT_Err_Ok {

@@ -13,8 +13,8 @@ glam = "0.24.2"
 # default-features = false
 # features = ["macros"]
 
-[target.'cfg(windows)'.dependencies.win_window]
-path = "../../win_window" 
+[target.'cfg(windows)'.dependencies.window]
+path = "../../window" 
 version = "0.1.0"
 
 [target.'cfg(windows)'.dependencies.makepad-windows]

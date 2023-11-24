@@ -55,7 +55,7 @@ use makepad_windows::{
 };
 
 use glam::DVec2;
-use win_window::Window;
+use window::Window;
 
 #[derive(Clone)]
 pub struct D3D11 {

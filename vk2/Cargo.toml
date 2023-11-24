@@ -11,4 +11,4 @@ profile = ["mini/profile"]
 [dependencies]
 ash = { git = "https://github.com/ash-rs/ash", default-features = false, features = ["linked", "debug"] }
 mini = { version ="0.1.0", path= "../../mini" }
-win_window = { version = "0.1.0", path = "../../win_window" }
+window = { version = "0.1.0", path = "../../window" }
