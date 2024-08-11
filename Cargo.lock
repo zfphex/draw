@@ -128,13 +128,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam-utils"
-version = "0.8.16"
+name = "crossbeam-queue"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a22b2d63d4d1dc0b7f1b6b2747dd0088008a9be28b6ddf0b1e7d335e3037294"
+checksum = "df0346b5d5e76ac2fe4e327c5fd1118d6be7c51dfb18f9b7922923f287471e35"
 dependencies = [
- "cfg-if",
+ "crossbeam-utils",
 ]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
 
 [[package]]
 name = "crunchy"
@@ -148,6 +154,7 @@ version = "0.1.0"
 dependencies = [
  "glfw",
  "winapi",
+ "window 0.1.0 (git+https://github.com/zx3no/window)",
 ]
 
 [[package]]
@@ -156,7 +163,7 @@ version = "0.1.0"
 dependencies = [
  "glam",
  "makepad-windows",
- "window",
+ "window 0.1.0",
 ]
 
 [[package]]
@@ -457,6 +464,7 @@ dependencies = [
 [[package]]
 name = "mini"
 version = "0.1.0"
+source = "git+https://github.com/zx3no/mini#d2d8e1da0fa2b586cf9e69bb55b7546a6c00cffd"
 
 [[package]]
 name = "miniz_oxide"
@@ -766,7 +774,7 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "mini",
- "window",
+ "window 0.1.0 (git+https://github.com/zx3no/window)",
 ]
 
 [[package]]
@@ -880,6 +888,17 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "window"
 version = "0.1.0"
+dependencies = [
+ "crossbeam-queue",
+]
+
+[[package]]
+name = "window"
+version = "0.1.0"
+source = "git+https://github.com/zx3no/window#caa313909624aab43b492687e389a243dc788ed0"
+dependencies = [
+ "crossbeam-queue",
+]
 
 [[package]]
 name = "windows-core"

@@ -6,9 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-profile = ["mini/profile"]
 
 [dependencies]
 ash = { git = "https://github.com/ash-rs/ash", default-features = false, features = ["linked", "debug"] }
-mini = { version ="0.1.0", path= "../../mini" }
-window = { version = "0.1.0", path = "../../window" }
+mini = { version = "0.1.0", git = "https://github.com/zx3no/mini" }
+window = { version = "0.1.0", git = "https://github.com/zx3no/window" }

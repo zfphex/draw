@@ -15,7 +15,7 @@ fn main() {
 
     loop {
         unsafe { vk2::draw(&vk, &mut frame_number) };
-        match event() {
+        match vk.window.event() {
             Some(Event::Quit) => {
                 break;
             }

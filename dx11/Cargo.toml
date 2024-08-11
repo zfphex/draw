@@ -14,5 +14,6 @@ winapi = { version = "0.3", features = [
     "d3dcompiler",
 ] }
 glfw = "0.52.0"
+window = { git = "https://github.com/zx3no/window", version = "0.1.0" }
 
 

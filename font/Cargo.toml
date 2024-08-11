@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freetype-rs = "0.34.0"
 glfw = "0.52.0"
 glow = "0.12.1"
 image = "0.24.6"
 nalgebra-glm = "0.18.0"
-mini = { path="../../mini", version = "0.1.0", features = ["profile"] }
+mini = { version = "0.1.0", git = "https://github.com/zx3no/mini" }
+freetype-rs = "0.34.0"
 freetype-sys = "0.19.0"

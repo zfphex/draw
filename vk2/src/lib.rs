@@ -1,3 +1,5 @@
+use std::pin::Pin;
+
 use ash::{
     extensions::{ext::DebugUtils, khr},
     *,
@@ -19,7 +21,7 @@ pub unsafe fn create_surface(
     instance: &Instance,
     width: u32,
     height: u32,
-) -> (Window, vk::SurfaceKHR) {
+) -> (Pin<Box<window::Window>>, vk::SurfaceKHR) {
     profile!();
     let window = create_window("test window", width as i32, height as i32);
     let win32_surface_fn = khr::Win32Surface::new(&entry, &instance);
@@ -318,7 +320,7 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
 
     vk.device.cmd_begin_render_pass(
         vk.command_buffer,
-        &vk::RenderPassBeginInfo::default()
+        &vk::RenderPassBeginInfo::default( )
             .render_pass(vk.render_pass)
             .clear_values(&[clear_value])
             .framebuffer(vk.framebuffers[index as usize])
@@ -360,7 +362,7 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
 pub struct Vulkan {
     pub entry: Entry,
     pub instance: Instance,
-    pub window: Window,
+    pub window: Pin<Box<window::Window>>,
     pub surface: vk::SurfaceKHR,
     pub surface_capabilities: vk::SurfaceCapabilitiesKHR,
     pub device: Device,
