@@ -1,9 +1,6 @@
 use std::pin::Pin;
 
-use ash::{
-    extensions::{ext::DebugUtils, khr},
-    *,
-};
+use ash::*;
 use mini::*;
 use window::*;
 
@@ -24,7 +21,7 @@ pub unsafe fn create_surface(
 ) -> (Pin<Box<window::Window>>, vk::SurfaceKHR) {
     profile!();
     let window = create_window("test window", width as i32, height as i32);
-    let win32_surface_fn = khr::Win32Surface::new(&entry, &instance);
+    let win32_surface_fn = khr::win32_surface::Instance::new(&entry, &instance);
     let surface = win32_surface_fn
         .create_win32_surface(
             &vk::Win32SurfaceCreateInfoKHR::default()
@@ -60,7 +57,7 @@ pub unsafe fn create_device(instance: &Instance) -> (vk::PhysicalDevice, Device,
                 .queue_create_infos(&[vk::DeviceQueueCreateInfo::default()
                     .queue_family_index(index as u32)
                     .queue_priorities(&[1.0])])
-                .enabled_extension_names(&[khr::Swapchain::NAME.as_ptr()])
+                .enabled_extension_names(&[khr::swapchain::NAME.as_ptr()])
                 .enabled_features(&vk::PhysicalDeviceFeatures {
                     shader_clip_distance: 1,
                     ..Default::default()
@@ -86,21 +83,21 @@ pub unsafe fn create_swapchain(
     physical_device: &vk::PhysicalDevice,
     device: &Device,
 ) -> (
-    khr::Swapchain,
+    khr::swapchain::Device,
     vk::SwapchainKHR,
     Vec<vk::Image>,
     Vec<vk::ImageView>,
-    khr::Surface,
+    khr::surface::Instance,
     vk::SurfaceCapabilitiesKHR,
 ) {
     profile!();
-    let surface_fn = khr::Surface::new(entry, instance);
-    let swapchain_fn = khr::Swapchain::new(instance, device);
+    let surface_loader = khr::surface::Instance::new(entry, instance);
+    let swapchain_loader = khr::swapchain::Device::new(instance, device);
 
-    let surface_capabilities = surface_fn
+    let surface_capabilities = surface_loader
         .get_physical_device_surface_capabilities(*physical_device, *surface)
         .unwrap();
-    let surface_formats = surface_fn
+    let surface_formats = surface_loader
         .get_physical_device_surface_formats(*physical_device, *surface)
         .unwrap();
 
@@ -125,11 +122,11 @@ pub unsafe fn create_swapchain(
         .clipped(true)
         .image_array_layers(1);
 
-    let swapchain = swapchain_fn
+    let swapchain = swapchain_loader
         .create_swapchain(&swapchain_create_info, None)
         .unwrap();
 
-    let images = swapchain_fn.get_swapchain_images(swapchain).unwrap();
+    let images = swapchain_loader.get_swapchain_images(swapchain).unwrap();
     let image_views: Vec<vk::ImageView> = images
         .iter()
         .map(|&image| {
@@ -159,11 +156,11 @@ pub unsafe fn create_swapchain(
         .collect();
 
     (
-        swapchain_fn,
+        swapchain_loader,
         swapchain,
         images,
         image_views,
-        surface_fn,
+        surface_loader,
         surface_capabilities,
     )
 }
@@ -290,7 +287,7 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
     vk.device.reset_fences(&[vk.render_fence]).unwrap();
 
     let (index, is_suboptimal) = vk
-        .swapchain_fn
+        .swapchain_loader
         .acquire_next_image(
             vk.swapchain,
             ONE_SECOND,
@@ -320,7 +317,7 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
 
     vk.device.cmd_begin_render_pass(
         vk.command_buffer,
-        &vk::RenderPassBeginInfo::default( )
+        &vk::RenderPassBeginInfo::default()
             .render_pass(vk.render_pass)
             .clear_values(&[clear_value])
             .framebuffer(vk.framebuffers[index as usize])
@@ -346,7 +343,7 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
         )
         .unwrap();
 
-    vk.swapchain_fn
+    vk.swapchain_loader
         .queue_present(
             vk.queue,
             &vk::PresentInfoKHR::default()
@@ -380,9 +377,9 @@ pub struct Vulkan {
     pub render_semaphore: vk::Semaphore,
     pub debug: Option<vk::DebugUtilsMessengerEXT>,
 
-    pub debug_fn: DebugUtils,
-    pub surface_fn: khr::Surface,
-    pub swapchain_fn: khr::Swapchain,
+    pub debug_loader: ext::debug_utils::Instance,
+    pub surface_loader: khr::surface::Instance,
+    pub swapchain_loader: khr::swapchain::Device,
 }
 
 impl Vulkan {
@@ -390,17 +387,18 @@ impl Vulkan {
         profile!();
         const LAYERS: [*const i8; 1] = [b"VK_LAYER_KHRONOS_validation\0".as_ptr() as *const i8];
         const EXTENSIONS: [*const i8; 2] = [
-            khr::Surface::NAME.as_ptr(),
-            khr::Win32Surface::NAME.as_ptr(),
+            khr::surface::NAME.as_ptr(),
+            khr::win32_surface::NAME.as_ptr(),
         ];
         const DEBUG_EXTENSIONS: [*const i8; 3] = [
-            khr::Surface::NAME.as_ptr(),
-            khr::Win32Surface::NAME.as_ptr(),
-            extensions::ext::DebugUtils::NAME.as_ptr(),
+            khr::surface::NAME.as_ptr(),
+            khr::win32_surface::NAME.as_ptr(),
+            ext::debug_utils::NAME.as_ptr(),
         ];
 
         unsafe {
             let entry = ash::Entry::linked();
+            // let entry = ash::Entry::load().unwrap();
             let instance = entry
                 .create_instance(
                     &vk::InstanceCreateInfo::default()
@@ -414,9 +412,9 @@ impl Vulkan {
                 )
                 .unwrap();
 
-            let debug_fn = DebugUtils::new(&entry, &instance);
+            let debug_loader = ext::debug_utils::Instance::new(&entry, &instance);
             let debug = if debug {
-                Some(enable_debugging(&debug_fn))
+                Some(enable_debugging(&debug_loader))
             } else {
                 None
             };
@@ -424,11 +422,11 @@ impl Vulkan {
             let (window, surface) = create_surface(&entry, &instance, width, height);
             let (physical_device, device, queue, queue_index) = create_device(&instance);
             let (
-                swapchain_fn,
+                swapchain_loader,
                 swapchain,
                 swapchain_images,
                 swapchain_image_views,
-                surface_fn,
+                surface_loader,
                 surface_capabilities,
             ) = create_swapchain(&entry, &instance, &surface, &physical_device, &device);
             let (command_pool, command_buffer) = create_commands(&device, queue_index);
@@ -456,9 +454,9 @@ impl Vulkan {
                 present_semaphore,
                 render_semaphore,
                 debug,
-                debug_fn,
-                surface_fn,
-                swapchain_fn,
+                debug_loader,
+                surface_loader,
+                swapchain_loader,
             }
         }
     }
@@ -478,18 +476,19 @@ impl Drop for Vulkan {
             }
 
             self.device.destroy_render_pass(self.render_pass, None);
-            self.swapchain_fn.destroy_swapchain(self.swapchain, None);
+            self.swapchain_loader
+                .destroy_swapchain(self.swapchain, None);
 
             for image in std::mem::take(&mut self.swapchain_image_views) {
                 self.device.destroy_image_view(image, None);
             }
 
-            if let Some(debug) = self.debug {
-                self.debug_fn.destroy_debug_utils_messenger(debug, None);
-            }
+            // if let Some(debug) = self.debug {
+            //     self.debug_fn.destroy_debug_utils_messenger(debug, None);
+            // }
 
             self.device.destroy_device(None);
-            self.surface_fn.destroy_surface(self.surface, None);
+            self.surface_loader.destroy_surface(self.surface, None);
 
             self.instance.destroy_instance(None);
         }
@@ -520,23 +519,23 @@ unsafe extern "system" fn vulkan_debug_callback(
         CStr::from_ptr(callback_data.p_message).to_string_lossy()
     };
 
-    let message = format!(
+    let _message = format!(
         "{message_type:?} [{message_id_name} ({message_id_number})]: {}",
         message.trim_start()
     );
 
     match message_severity {
         vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => {
-            info!("{message}");
+            info!("{_message}");
         }
         vk::DebugUtilsMessageSeverityFlagsEXT::INFO => {
-            info!("{message}");
+            info!("{_message}");
         }
         vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => {
-            warn!("{message}");
+            warn!("{_message}");
         }
         vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => {
-            error!("{message}");
+            error!("{_message}");
         }
         _ => unreachable!(),
     };
@@ -544,7 +543,9 @@ unsafe extern "system" fn vulkan_debug_callback(
     vk::FALSE
 }
 
-pub unsafe fn enable_debugging(debug_fn: &DebugUtils) -> vk::DebugUtilsMessengerEXT {
+pub unsafe fn enable_debugging(
+    debug_loader: &ext::debug_utils::Instance,
+) -> vk::DebugUtilsMessengerEXT {
     let debug_info = vk::DebugUtilsMessengerCreateInfoEXT::default()
         .message_severity(
             vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
@@ -558,7 +559,7 @@ pub unsafe fn enable_debugging(debug_fn: &DebugUtils) -> vk::DebugUtilsMessenger
         )
         .pfn_user_callback(Some(vulkan_debug_callback));
 
-    debug_fn
+    debug_loader
         .create_debug_utils_messenger(&debug_info, None)
         .unwrap()
 }
