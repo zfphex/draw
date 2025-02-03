@@ -16,4 +16,5 @@ error = ["mini/error"]
 ash = { version = "0.38.0", features = ["linked", "debug"] }
 # ash = { version = "0.38.0", features = ["debug"] }
 mini = { version = "0.1.0", git = "https://github.com/zx3no/mini" }
-window = { version = "0.1.0", git = "https://github.com/zx3no/window" }
+window = { version = "0.1.0", path = "../../window" }
+# window = { version = "0.1.0", git = "https://github.com/zx3no/window" }

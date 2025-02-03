@@ -53,7 +53,7 @@ pub unsafe fn create_device(instance: &Instance) -> (vk::PhysicalDevice, Device,
 
     // let properties = instance.get_physical_device_properties(*physical_device);
     // let name = str_from_i8(&properties.device_name).unwrap();
-    // minilog::info!("Physical Device: {}", name);
+    // info!("Physical Device: {}", name);
 
     let device = instance
         .create_device(
@@ -87,6 +87,8 @@ pub unsafe fn create_swapchain(
     surface: &vk::SurfaceKHR,
     physical_device: &vk::PhysicalDevice,
     device: &Device,
+    width: u32,
+    height: u32,
 ) -> (
     khr::swapchain::Device,
     vk::SwapchainKHR,
@@ -118,7 +120,8 @@ pub unsafe fn create_swapchain(
         .min_image_count(surface_capabilities.min_image_count + 1)
         .image_color_space(SURFACE_FORMAT.color_space)
         .image_format(SURFACE_FORMAT.format)
-        .image_extent(surface_capabilities.current_extent)
+        // .image_extent(surface_capabilities.current_extent)
+        .image_extent(vk::Extent2D { width, height })
         .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
         .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
         .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
@@ -170,6 +173,104 @@ pub unsafe fn create_swapchain(
     )
 }
 
+//TODO: VKGuide has been updated quite a bit, so retrofitting resizing into this shitty code isn't having a great affect.
+//Time for vk3 I guess...
+pub unsafe fn resize_swapchain(vk: &mut Vulkan) {
+    vk.device.device_wait_idle().unwrap();
+
+    vk.swapchain_loader.destroy_swapchain(vk.swapchain, None);
+
+    for image in std::mem::take(&mut vk.swapchain_image_views) {
+        vk.device.destroy_image_view(image, None);
+    }
+
+    // dbg!(vk.surface_capabilities.current_extent, vk.window.width(), vk.window.height());
+    // let (
+    //     swapchain_loader,
+    //     swapchain,
+    //     swapchain_images,
+    //     swapchain_image_views,
+    //     surface_loader,
+    //     surface_capabilities,
+    // ) = create_swapchain(
+    //     &vk.entry,
+    //     &vk.instance,
+    //     &vk.surface,
+    //     &vk.physical_device,
+    //     &vk.device,
+    //     vk.surface_capabilities.current_extent.width,
+    //     vk.surface_capabilities.current_extent.height
+    // );
+    let width = vk.surface_capabilities.current_extent.width;
+    let height = vk.surface_capabilities.current_extent.height;
+
+    // vk.swapchain_loader = swapchain_loader;
+    // vk.swapchain = swapchain;
+    // vk.swapchain_images = swapchain_images;
+    // vk.swapchain_image_views = swapchain_image_views;
+    // vk.surface_loader = surface_loader;
+    // vk.surface_capabilities = surface_capabilities;
+
+    let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
+        .surface(vk.surface)
+        .min_image_count(vk.surface_capabilities.min_image_count + 1)
+        .image_color_space(SURFACE_FORMAT.color_space)
+        .image_format(SURFACE_FORMAT.format)
+        // .image_extent(surface_capabilities.current_extent)
+        .image_extent(vk::Extent2D { width, height })
+        .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+        .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
+        .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
+        .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+        .present_mode(vk::PresentModeKHR::FIFO_RELAXED)
+        .clipped(true)
+        .image_array_layers(1);
+
+    // let swapchain_loader = khr::swapchain::Device::new(&vk.instance, &vk.device);
+    // let swapchain = swapchain_loader
+    //     .create_swapchain(&swapchain_create_info, None)
+    //     .unwrap();
+
+    let swapchain = vk
+        .swapchain_loader
+        .create_swapchain(&swapchain_create_info, None)
+        .unwrap();
+    vk.swapchain_images = vk.swapchain_loader.get_swapchain_images(swapchain).unwrap();
+    let image_views: Vec<vk::ImageView> = vk
+        .swapchain_images
+        .iter()
+        .map(|&image| {
+            vk.device
+                .create_image_view(
+                    &vk::ImageViewCreateInfo::default()
+                        .view_type(vk::ImageViewType::TYPE_2D)
+                        .format(SURFACE_FORMAT.format)
+                        .components(vk::ComponentMapping {
+                            r: vk::ComponentSwizzle::R,
+                            g: vk::ComponentSwizzle::G,
+                            b: vk::ComponentSwizzle::B,
+                            a: vk::ComponentSwizzle::A,
+                        })
+                        .subresource_range(vk::ImageSubresourceRange {
+                            aspect_mask: vk::ImageAspectFlags::COLOR,
+                            base_mip_level: 0,
+                            level_count: 1,
+                            base_array_layer: 0,
+                            layer_count: 1,
+                        })
+                        .image(image),
+                    None,
+                )
+                .unwrap()
+        })
+        .collect();
+
+    vk.swapchain_image_views = image_views;
+    vk.swapchain = swapchain;
+
+    vk.resize_requested = false;
+}
+
 pub unsafe fn create_commands(device: &Device, index: u32) -> (vk::CommandPool, vk::CommandBuffer) {
     profile!();
     let pool = device
@@ -200,7 +301,7 @@ pub enum ShaderType {
 }
 
 ///https://vkguide.dev/docs/chapter-2/toggling_shaders/
-pub unsafe fn create_shader(device: &Device, bytes: &[u8], shader_type: ShaderType) {
+pub unsafe fn create_shader(device: &Device, bytes: &[u8], shader_type: vk::ShaderStageFlags) {
     profile!();
     const MAIN: *const i8 = b"main\0" as *const u8 as *const i8;
     let (_, code, _) = unsafe { bytes.align_to::<u32>() };
@@ -209,10 +310,7 @@ pub unsafe fn create_shader(device: &Device, bytes: &[u8], shader_type: ShaderTy
     let _shader = vk::PipelineShaderStageCreateInfo {
         module: shader_module,
         p_name: MAIN,
-        stage: match shader_type {
-            ShaderType::Vertex => vk::ShaderStageFlags::VERTEX,
-            ShaderType::Fragment => vk::ShaderStageFlags::FRAGMENT,
-        },
+        stage: shader_type,
         ..Default::default()
     };
 }
@@ -283,23 +381,31 @@ pub unsafe fn create_sync(device: &Device) -> (vk::Fence, vk::Semaphore, vk::Sem
     (render_fence, present_semaphore, render_semaphore)
 }
 
-pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
+pub unsafe fn draw(vk: &mut Vulkan, frame_number: &mut f32) {
     profile!();
     const ONE_SECOND: u64 = 1000000000;
+
     vk.device
         .wait_for_fences(&[vk.render_fence], true, ONE_SECOND)
         .unwrap();
     vk.device.reset_fences(&[vk.render_fence]).unwrap();
 
-    let (index, is_suboptimal) = vk
-        .swapchain_loader
-        .acquire_next_image(
-            vk.swapchain,
-            ONE_SECOND,
-            vk.present_semaphore,
-            vk::Fence::null(),
-        )
-        .unwrap();
+    let (index, is_suboptimal) = match vk.swapchain_loader.acquire_next_image(
+        vk.swapchain,
+        ONE_SECOND,
+        vk.present_semaphore,
+        vk::Fence::null(),
+    ) {
+        Ok((a, b)) => (a, b),
+        Err(err) => {
+            if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
+                vk.resize_requested = true;
+            }
+
+            return;
+        }
+    };
+
     assert_eq!(is_suboptimal, false);
     vk.device
         .reset_command_buffer(vk.command_buffer, vk::CommandBufferResetFlags::empty())
@@ -348,15 +454,17 @@ pub unsafe fn draw(vk: &Vulkan, frame_number: &mut f32) {
         )
         .unwrap();
 
-    vk.swapchain_loader
-        .queue_present(
-            vk.queue,
-            &vk::PresentInfoKHR::default()
-                .swapchains(&[vk.swapchain])
-                .wait_semaphores(&[vk.render_semaphore])
-                .image_indices(&[index]),
-        )
-        .unwrap();
+    let err = vk.swapchain_loader.queue_present(
+        vk.queue,
+        &vk::PresentInfoKHR::default()
+            .swapchains(&[vk.swapchain])
+            .wait_semaphores(&[vk.render_semaphore])
+            .image_indices(&[index]),
+    );
+
+    if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR) = err {
+        vk.resize_requested = true;
+    }
 
     *frame_number += 1.0;
 }
@@ -365,9 +473,11 @@ pub struct Vulkan {
     pub entry: Entry,
     pub instance: Instance,
     pub window: Pin<Box<window::Window>>,
+    pub resize_requested: bool,
     pub surface: vk::SurfaceKHR,
     pub surface_capabilities: vk::SurfaceCapabilitiesKHR,
     pub device: Device,
+    pub physical_device: vk::PhysicalDevice,
     pub queue: vk::Queue,
     pub queue_index: u32,
     pub command_pool: vk::CommandPool,
@@ -433,7 +543,15 @@ impl Vulkan {
                 swapchain_image_views,
                 surface_loader,
                 surface_capabilities,
-            ) = create_swapchain(&entry, &instance, &surface, &physical_device, &device);
+            ) = create_swapchain(
+                &entry,
+                &instance,
+                &surface,
+                &physical_device,
+                &device,
+                window.width() as u32,
+                window.height() as u32,
+            );
             let (command_pool, command_buffer) = create_commands(&device, queue_index);
             let (render_pass, framebuffers) =
                 create_render_pass(&device, &swapchain_image_views, surface_capabilities);
@@ -443,8 +561,10 @@ impl Vulkan {
                 entry,
                 instance,
                 window,
+                resize_requested: false,
                 surface,
                 surface_capabilities,
+                physical_device,
                 device,
                 queue,
                 queue_index,

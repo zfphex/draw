@@ -8,18 +8,23 @@ use vk2::Vulkan;
 use window::*;
 
 fn main() {
-    // mini::defer_results!();
-    let vk = Vulkan::new(800, 600, true);
+    mini::defer_results!();
+    let mut vk = Vulkan::new(800, 600, true);
 
     let mut frame_number = 0.0;
 
     loop {
-        unsafe { vk2::draw(&vk, &mut frame_number) };
+        unsafe { vk2::draw(&mut vk, &mut frame_number) };
+
         match vk.window.event() {
             Some(Event::Quit) => {
                 break;
             }
             _ => {}
+        }
+
+        if vk.resize_requested {
+            unsafe { vk2::resize_swapchain(&mut vk) };
         }
     }
 }
