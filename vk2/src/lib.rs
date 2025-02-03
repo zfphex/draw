@@ -20,7 +20,12 @@ pub unsafe fn create_surface(
     height: u32,
 ) -> (Pin<Box<window::Window>>, vk::SurfaceKHR) {
     profile!();
-    let window = create_window("test window", width as i32, height as i32);
+    let window = create_window(
+        "test window",
+        width as i32,
+        height as i32,
+        WindowStyle::default(),
+    );
     let win32_surface_fn = khr::win32_surface::Instance::new(&entry, &instance);
     let surface = win32_surface_fn
         .create_win32_surface(
@@ -483,9 +488,9 @@ impl Drop for Vulkan {
                 self.device.destroy_image_view(image, None);
             }
 
-            // if let Some(debug) = self.debug {
-            //     self.debug_fn.destroy_debug_utils_messenger(debug, None);
-            // }
+            if let Some(debug) = self.debug {
+                self.debug_loader.destroy_debug_utils_messenger(debug, None);
+            }
 
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);

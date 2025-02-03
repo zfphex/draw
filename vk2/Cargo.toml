@@ -7,6 +7,11 @@ edition = "2021"
 
 [features]
 
+profile = ["mini/profile"]
+info = ["mini/info"]
+warn = ["mini/warn"]
+error = ["mini/error"]
+
 [dependencies]
 ash = { version = "0.38.0", features = ["linked", "debug"] }
 # ash = { version = "0.38.0", features = ["debug"] }
