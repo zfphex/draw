@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 ///!https://github.com/ash-rs/ash/blob/master/examples/src/lib.rs
 ///!https://github.com/zX3no/vk/blob/main/src/main.rs
 ///!https://vkguide.dev/
@@ -9,6 +9,7 @@ use window::*;
 
 fn main() {
     mini::defer_results!();
+    mini::profile!();
     let mut vk = Vulkan::new(800, 600, true);
 
     let mut frame_number = 0.0;

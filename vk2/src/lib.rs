@@ -22,6 +22,8 @@ pub unsafe fn create_surface(
     profile!();
     let window = create_window(
         "test window",
+        0, 
+        0,
         width as i32,
         height as i32,
         WindowStyle::default(),

@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 use glfw::*;
 use glow::HasContext;
 use mini::{defer_results, profile};
@@ -26,14 +26,15 @@ fn main() {
     while !window.should_close() {
         unsafe { gl.clear(glow::COLOR_BUFFER_BIT) };
 
-        for (_, event) in glfw::flush_messages(&events) {
-            match event {
-                WindowEvent::Close => window.set_should_close(true),
-                _ => {}
-            };
-        }
+        // for (_, event) in glfw::flush_messages(&events) {
+        //     match event {
+        //         WindowEvent::Close => window.set_should_close(true),
+        //         _ => {}
+        //     };
+        // }
 
         window.swap_buffers();
-        glfw.poll_events();
+        return;
+        // glfw.poll_events();
     }
 }
